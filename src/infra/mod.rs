@@ -7,5 +7,6 @@ pub mod json;
 pub mod sqlite;
 pub mod token;
 pub mod toml;
+pub mod workspace_root;
 
 pub use token::CharsPer4Estimator;

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use ratatui::layout::Rect;
 
 use crate::application::usecases::list_session_turns::{self, TurnSummary};
-use crate::application::usecases::list_workspace_sessions::SessionListItem;
+use crate::application::usecases::list_workspace_sessions::{self, SessionListItem};
 use crate::application::usecases::preview_segment::SegmentPreview;
 use crate::application::usecases::{
     analyze_workspace, build_context_breakdown, estimate_tokens, preview_segment,
@@ -110,6 +110,8 @@ pub struct AppState {
     pub sessions: Vec<SessionListItem>,
     pub session_list_cursor: usize,
     pub loaded: Option<LoadedState>,
+    /// Working directory when `inspect` started; used with git (or this path) to scope sessions.
+    pub launch_dir: PathBuf,
     /// `inspect --file` / `--session`: back from Turn List quits.
     pub launched_with_path: bool,
     pub overlay: Option<Overlay>,
@@ -137,12 +139,17 @@ pub struct VisibleNode {
 }
 
 impl AppState {
-    pub fn new_session_picker(sessions: Vec<SessionListItem>, theme: Theme) -> Self {
+    pub fn new_session_picker(
+        sessions: Vec<SessionListItem>,
+        theme: Theme,
+        launch_dir: PathBuf,
+    ) -> Self {
         let mut state = AppState {
             stage: Stage::SessionList,
             sessions,
             session_list_cursor: 0,
             loaded: None,
+            launch_dir,
             launched_with_path: false,
             overlay: None,
             preview_scroll: 0,
@@ -166,6 +173,7 @@ impl AppState {
         active_session_idx: usize,
         theme: Theme,
         launched_with_path: bool,
+        launch_dir: PathBuf,
     ) -> Self {
         let source_path = session.source_path.clone();
         let loaded = LoadedState::new(session, source_path, active_session_idx);
@@ -174,6 +182,7 @@ impl AppState {
             sessions,
             session_list_cursor: active_session_idx,
             loaded: Some(loaded),
+            launch_dir,
             launched_with_path,
             overlay: None,
             preview_scroll: 0,
@@ -317,6 +326,11 @@ impl AppState {
                 self.loaded = None;
                 self.overlay = None;
                 self.detail_mode = false;
+                self.sessions = list_workspace_sessions::list_for_launch_dir(&self.launch_dir)
+                    .unwrap_or_default();
+                self.session_list_cursor = self
+                    .session_list_cursor
+                    .min(self.sessions.len().saturating_sub(1));
             }
             KeyAction::OpenTurnList => {
                 if self.loaded.is_some() {

@@ -20,8 +20,14 @@ fn dump_frame_to_stdout() {
         .join("tests/fixtures/codex/rollout-with-subagent/ctx.jsonl");
     let estimator = estimate_tokens::default_estimator();
     let session = analyze_workspace::run(Some(&path), None, &estimator).unwrap();
-    let mut state =
-        AppState::new_with_loaded_session(session, Vec::new(), 0, Theme::builtin(), true);
+    let mut state = AppState::new_with_loaded_session(
+        session,
+        Vec::new(),
+        0,
+        Theme::builtin(),
+        true,
+        std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+    );
     state.enter_breakdown();
 
     let backend = TestBackend::new(120, 36);
