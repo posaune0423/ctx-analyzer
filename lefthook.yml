@@ -1,0 +1,19 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt-rust:
+      glob: "*.rs"
+      run: cargo fmt --all -- --check
+    fmt-md:
+      glob: "*.md"
+      run: prettier --check {staged_files}
+    clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+
+pre-push:
+  commands:
+    test:
+      run: cargo test --all-targets --all-features
+    deny:
+      run: cargo deny check
