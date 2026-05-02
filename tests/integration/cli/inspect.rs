@@ -54,7 +54,10 @@ fn tui_frame_shows_header_summary_and_categories() {
     let dump = render_to_string(&mut state, 120, 30);
     assert!(dump.contains("ctx-analyzer"), "header missing\n{dump}");
     // New Header style shows "Codex : review" instead of "[Codex]"
-    assert!(dump.contains("Codex : review"), "agent/subagent info missing\n{dump}");
+    assert!(
+        dump.contains("Codex : review"),
+        "agent/subagent info missing\n{dump}"
+    );
     assert!(dump.contains("Total"), "summary bar missing\n{dump}");
     // New categories
     assert!(
