@@ -20,12 +20,15 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// Print a textual context breakdown for a Codex session.
+    /// Open the interactive TUI for a Codex session (UI.md).
     Inspect {
         #[arg(long)]
         file: Option<PathBuf>,
         #[arg(long)]
         session: Option<String>,
+        /// Theme name (`default`) or path to a custom theme.toml.
+        #[arg(long)]
+        theme: Option<String>,
     },
     /// Export the session as agent-agnostic JSON (schema_version 0.1).
     Export {

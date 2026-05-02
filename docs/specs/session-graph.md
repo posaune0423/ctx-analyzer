@@ -35,14 +35,32 @@ single-rollout-file 内で観測できる関係のみを表現:
 cross-file linking。同一 `~/.codex/sessions/` 配下にある複数 rollout file を
 横断して parent ↔ child を復元する:
 
-| 推定 source                                              | confidence |
-| -------------------------------------------------------- | ---------- |
-| 明示 link (parent_session_id 等が rollout に書かれた場合) | Observed   |
-| `cwd` + `originator` + 開始時刻が parent の特定 turn と一致 | Estimated  |
-| label のみ一致 (link 不明)                               | Unknown / orphan |
+| 推定 source                                                 | confidence       |
+| ----------------------------------------------------------- | ---------------- |
+| 明示 link (parent_session_id 等が rollout に書かれた場合)   | Observed         |
+| `cwd` + `originator` + 開始時刻が parent の特定 turn と一致 | Estimated        |
+| label のみ一致 (link 不明)                                  | Unknown / orphan |
 
 orphan session は `SessionGraph` のどれにも繋がらない子として保持し、PRD §18.3
 の Mitigation に従い「link 不明」と表示する。
+
+### 4.1 アルゴリズム（claude-devtools `SubagentResolver` 参照）
+
+`references/claude-devtools/src/main/services/discovery/SubagentResolver.ts`
+の方式を Codex / Claude Code に展開する:
+
+1. **Discovery**: 親 session と同じ workspace の subagent file 群を列挙する
+   （Codex: 同一 cwd / originator の rollout file 群、Claude Code:
+   `<sessionId>/subagents/agent-<id>.jsonl`）。
+2. **Linking**: 親側の tool-call event の id を使って subagent に紐付ける
+   （Codex は `function_call.call_id` ↔ child の `parent_call_id` 等。
+   Claude Code は `sourceToolUseID` field で 1 対 1 結合）。
+3. **Parallelism detection**: 各 subagent の最初/最後の event の timestamp
+   から `[start, end]` を算出。`PARALLEL_WINDOW_MS = 100ms` を超えて
+   重なるものは parallel フラグを立てる。
+
+このアルゴリズムは将来 `src/application/usecases/reconstruct_session_graph/`
+に実装する。current MVP 実装は no-op linker のまま。
 
 ## 5. UI implications
 

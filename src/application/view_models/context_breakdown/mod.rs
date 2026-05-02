@@ -1,8 +1,9 @@
 //! Display-friendly view model for the context breakdown screen
 //! (UI.md §6 / §9 / §10).
 
-pub mod text_render;
-
+use crate::constants::severity::{
+    SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM, SYMBOL_CRITICAL, SYMBOL_HIGH, SYMBOL_UNKNOWN,
+};
 use crate::domain::{Confidence, ContextCategory, ContextSourceKind, SourceRef, TokenEstimate};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,11 +18,10 @@ pub enum Severity {
 impl Severity {
     pub fn symbol(self) -> &'static str {
         match self {
-            Severity::Low => "",
-            Severity::Medium => "",
-            Severity::High => "!",
-            Severity::Critical => "!!",
-            Severity::Unknown => "?",
+            Severity::Low | Severity::Medium => "",
+            Severity::High => SYMBOL_HIGH,
+            Severity::Critical => SYMBOL_CRITICAL,
+            Severity::Unknown => SYMBOL_UNKNOWN,
         }
     }
 
@@ -34,9 +34,9 @@ impl Severity {
 
     pub fn from_total(tokens: u64) -> Severity {
         match tokens {
-            t if t < 1_000 => Severity::Low,
-            t if t < 5_000 => Severity::Medium,
-            t if t < 15_000 => Severity::High,
+            t if t < SEVERITY_MEDIUM => Severity::Low,
+            t if t < SEVERITY_HIGH => Severity::Medium,
+            t if t < SEVERITY_CRITICAL => Severity::High,
             _ => Severity::Critical,
         }
     }
@@ -64,6 +64,8 @@ pub struct SourceGroup {
 
 #[derive(Debug, Clone)]
 pub struct SegmentRow {
+    /// Index into `Session.segments` (`ContextSegment.id`).
+    pub segment_id: usize,
     pub label: String,
     pub tokens: TokenEstimate,
     pub severity: Severity,

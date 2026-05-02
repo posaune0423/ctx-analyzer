@@ -11,11 +11,11 @@ token 数は常に **estimate** であり、UI は数値の前に `~` を付け�
 
 `src/domain/confidence/`:
 
-| 値          | 意味                                                        |
-| ----------- | ----------------------------------------------------------- |
-| `Observed`  | agent 自身の telemetry / event から取得した値              |
-| `Estimated` | text の長さから heuristic で算出                            |
-| `Unknown`   | text が見えない (encrypted reasoning 等)、estimate 不能    |
+| 値          | 意味                                                    |
+| ----------- | ------------------------------------------------------- |
+| `Observed`  | agent 自身の telemetry / event から取得した値           |
+| `Estimated` | text の長さから heuristic で算出                        |
+| `Unknown`   | text が見えない (encrypted reasoning 等)、estimate 不能 |
 
 ## 3. Default heuristic
 
@@ -52,12 +52,12 @@ TokenEstimate {
 
 `build_context_breakdown` view-model が以下の閾値で severity を付与:
 
-| 閾値                 | label    | symbol |
-| -------------------- | -------- | ------ |
-| `< 1k`               | Low      | (none) |
-| `1k–5k`              | Medium   | (none) |
-| `5k–15k`             | High     | `!`    |
-| `> 15k`              | Critical | `!!`   |
+| 閾値                  | label    | symbol |
+| --------------------- | -------- | ------ |
+| `< 1k`                | Low      | (none) |
+| `1k–5k`               | Medium   | (none) |
+| `5k–15k`              | High     | `!`    |
+| `> 15k`               | Critical | `!!`   |
 | `Confidence::Unknown` | Unknown  | `?`    |
 
 ## 6. Future
@@ -71,7 +71,7 @@ TokenEstimate {
 - `tests/unit/infra/token_heuristic.rs`:
   - 空文字 → 0
   - 10 ASCII → 3 (ceil(10/4))
-  - 10 multibyte (`あ`*10) → 3 (chars 基準)
+  - 10 multibyte (`あ`\*10) → 3 (chars 基準)
   - 8 ASCII → 2 (exact multiple)
 - `tests/integration/codex/rollout_with_subagent.rs`:
   - bundled fixture の totals が `Observed`、`total_tokens == 1_513_937`

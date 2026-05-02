@@ -1,11 +1,13 @@
 use std::path::{Path, PathBuf};
 
+use crate::constants::preview::PREVIEW_LIMIT_CHARS;
 use crate::domain::session::ParseWarning;
 use crate::domain::{
     AgentKind, Confidence, ContextCategory, ContextSegment, ContextSourceKind, Session,
     SessionGraph, SessionSource, SourceRef, TokenEstimate, Turn,
 };
 use crate::ports::TokenEstimator;
+use crate::utils::text::truncate_chars;
 
 use super::classifiers as classifier;
 use super::parsers::ParsedLine;
@@ -13,8 +15,6 @@ use super::raw::{
     BaseInstructions, ContentPart, Envelope, EventMsg, Message, MetaSource, Payload, Reasoning,
     ResponseItem, SessionMeta, TokenInfo, TokenUsage, TurnContext,
 };
-
-const PREVIEW_LIMIT: usize = 200;
 
 pub fn map_to_session(
     path: &Path,
@@ -540,16 +540,7 @@ fn combine_text(parts: &[ContentPart]) -> String {
 }
 
 fn truncate_preview(text: &str) -> String {
-    let trimmed = text.trim();
-    let mut out = String::with_capacity(trimmed.len().min(PREVIEW_LIMIT * 4));
-    for (count, ch) in trimmed.chars().enumerate() {
-        if count >= PREVIEW_LIMIT {
-            out.push('…');
-            break;
-        }
-        out.push(ch);
-    }
-    out
+    truncate_chars(text.trim(), PREVIEW_LIMIT_CHARS)
 }
 
 fn usage_to_estimate(u: TokenUsage) -> TokenEstimate {

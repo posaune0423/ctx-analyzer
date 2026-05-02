@@ -3,6 +3,7 @@
 
 use serde_json::{json, Value};
 
+use crate::constants::schema::{AGENT_KEY_CODEX, SCHEMA_VERSION};
 use crate::domain::{ContextCategory, ContextSegment, Session, TokenEstimate};
 use crate::ports::Exporter;
 
@@ -28,8 +29,8 @@ impl Exporter for JsonExporter {
             );
         }
         json!({
-            "schema_version": "0.1",
-            "agent": "codex",
+            "schema_version": SCHEMA_VERSION,
+            "agent": AGENT_KEY_CODEX,
             "session": {
                 "id": session.id,
                 "started_at": session.started_at,

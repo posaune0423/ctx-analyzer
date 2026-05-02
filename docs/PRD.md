@@ -14,6 +14,7 @@
 ## 2. Product Statement
 
 `ctx-analyzer` は、coding agent の context construction を session / turn / session graph 単位で可視化し、token 消費量・context load の差異・configuration overhead を分析するための developer tool です。
+plugin / connector / アプリ連携 / MCP / skill など接続先が増えたときに、同一内容が複数経路で context に載り **重複ロード** や **見えない肥大化** が起き、ウィンドウやプロダクト制限に早期到達しやすい問題を、観測・帰属・削減の材料として扱う。
 
 ---
 
@@ -34,6 +35,10 @@
 ---
 
 ## 4. Problem
+
+プラグイン、コネクタ、アプリ連携、MCP、スキル、rules など、coding agent に接続する「表面」が増えるほど、同じ説明・ツール定義・メタデータが **複数経路から同時に** context に載る可能性が高まる。
+開発者からは経路が見えにくいため、**重複ロード** と **段階的な肥大化** に気づきにくく、すぐに context / token の上限に達して本筋のプロンプトや実行結果を載せる余白が失われる。
+`ctx-analyzer` が解くべき中心課題の一つは、この **接続の積み重ねによる context 圧迫** を、session / turn 単位で **何が・どこから・どれだけ** 載っているかに分解して把握できるようにすることである。
 
 coding agent は user prompt 以外にも、多くの implicit context を読み込みます。
 Examples:

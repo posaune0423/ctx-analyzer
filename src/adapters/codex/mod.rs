@@ -14,6 +14,7 @@ pub mod graph;
 pub mod mappers;
 pub mod parsers;
 pub mod raw;
+pub mod rollout_preview;
 
 use std::path::{Path, PathBuf};
 

@@ -1,0 +1,67 @@
+# Built-in default theme for ctx-analyzer (UI.md §13).
+# Semantic palette + tokens. Component code resolves these via
+# `cli::tui::theme::Theme` rather than referencing colours directly.
+
+[palette]
+foreground = "gray"
+muted = "dark_gray"
+accent = "cyan"
+success = "green"
+warning = "yellow"
+critical = "red"
+unknown = "magenta"
+border = "dark_gray"
+selection_fg = "black"
+selection_bg = "cyan"
+
+[text]
+normal = "foreground"
+muted = "muted"
+title = "foreground,bold"
+subtitle = "muted"
+path = "accent,underline"
+badge = "accent,bold"
+
+[token.low]
+style = "foreground"
+
+[token.medium]
+style = "accent"
+
+[token.high]
+style = "warning,bold"
+symbol = "!"
+
+[token.critical]
+style = "critical,bold"
+symbol = "!!"
+
+[token.unknown]
+style = "unknown,dim"
+symbol = "?"
+
+[context.system]
+style = "magenta,bold"
+
+[context.configuration]
+style = "cyan,bold"
+
+[context.runtime]
+style = "green,bold"
+
+[context.delegated]
+style = "yellow,bold"
+
+[context.unknown]
+style = "unknown,dim"
+
+[row]
+selected = "selection_fg,selection_bg,bold"
+expanded = "foreground,bold"
+collapsed = "muted"
+
+[border]
+normal = "border"
+focused = "accent"
+warning = "warning"
+critical = "critical"

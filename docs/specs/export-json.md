@@ -64,14 +64,14 @@ schema は agent 中立で、Codex 固有名（rollout, AGENTS.md, etc.）を JS
   "category": "configuration",
   "source_kind": "permissions_instructions",
   "label": "Permissions Instructions",
-  "preview": "Filesystem sandboxing defines …",     // ≤200 chars + "…"
+  "preview": "Filesystem sandboxing defines …", // ≤200 chars + "…"
   "full_len_chars": 307,
   "source_ref": {
     "file": "tests/fixtures/codex/rollout-with-subagent/ctx.jsonl",
-    "line": 3
+    "line": 3,
   },
   "tokens": { "tokens": 77, "confidence": "Estimated" },
-  "confidence": "Estimated"
+  "confidence": "Estimated",
 }
 ```
 

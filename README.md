@@ -3,7 +3,9 @@
 Local-first context analyzer for coding agents. Visualises what a coding-agent
 session loaded into its context window — instructions, capabilities, runtime
 events, delegated subagents — bucketed into agent-agnostic categories with
-per-segment token estimates and provenance.
+per-segment token estimates and provenance. Helps teams that wire up plugins,
+connectors, app integrations, and MCP servers catch **duplicate or overlapping
+loads** before context bloat pushes sessions against model or product limits.
 
 The MVP ships with the **Codex** adapter; future adapters (Claude Code, Cursor,
 Gemini CLI, OpenCode) plug in behind the same `AgentAdapter` port.

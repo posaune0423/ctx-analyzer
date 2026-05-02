@@ -1,6 +1,7 @@
 //! CLI bootstrap and command routing (ARCHITECTURE.md §9).
 
 pub mod commands;
+pub mod tui;
 
 use commands::{Cli, Commands};
 
@@ -8,9 +9,11 @@ use commands::{Cli, Commands};
 /// subcommand failed; `main` maps that to exit code 1.
 pub fn run(cli: Cli) -> anyhow::Result<()> {
     match cli.cmd {
-        Commands::Inspect { file, session } => {
-            commands::inspect::run(file.as_deref(), session.as_deref())
-        }
+        Commands::Inspect {
+            file,
+            session,
+            theme,
+        } => commands::inspect::run(file.as_deref(), session.as_deref(), theme.as_deref()),
         Commands::Export { file, session, out } => {
             commands::export::run(file.as_deref(), session.as_deref(), out.as_deref())
         }

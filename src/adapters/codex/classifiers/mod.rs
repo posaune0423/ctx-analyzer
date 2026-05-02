@@ -1,9 +1,12 @@
 //! Helpers that classify free-form Codex text blocks into specific
 //! `ContextSourceKind`s using the markers observed in real rollouts.
+//!
+//! Tag table and project-doc prefix live in
+//! `crate::constants::codex` so adding a new inline marker is a
+//! one-place edit.
 
+use crate::constants::codex::{DEVELOPER_BLOCK_TAGS, PROJECT_DOC_PREFIX};
 use crate::domain::ContextSourceKind;
-
-const PROJECT_DOC_PREFIX: &str = "# AGENTS.md instructions for ";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeveloperBlock {
@@ -12,55 +15,28 @@ pub struct DeveloperBlock {
     pub body: String,
 }
 
-const TAGS: &[(&str, &str, ContextSourceKind, &str)] = &[
-    (
-        "<permissions instructions>",
-        "</permissions instructions>",
-        ContextSourceKind::PermissionsInstructions,
-        "Permissions Instructions",
-    ),
-    (
-        "<apps_instructions>",
-        "</apps_instructions>",
-        ContextSourceKind::AppsInstructions,
-        "Apps Instructions",
-    ),
-    (
-        "<skills_instructions>",
-        "</skills_instructions>",
-        ContextSourceKind::SkillsInstructions,
-        "Skills Instructions",
-    ),
-    (
-        "<plugins_instructions>",
-        "</plugins_instructions>",
-        ContextSourceKind::PluginsInstructions,
-        "Plugins Instructions",
-    ),
-];
-
 /// Split the first `developer` message into its tagged sub-blocks plus a
 /// fallback `BaseInstructions` block for any leftover text.
 pub fn split_developer_blocks(text: &str) -> Vec<DeveloperBlock> {
     let mut blocks: Vec<(usize, DeveloperBlock)> = Vec::new();
     let mut consumed_ranges: Vec<(usize, usize)> = Vec::new();
 
-    for (open, close, kind, label) in TAGS {
+    for tag in DEVELOPER_BLOCK_TAGS {
         let mut search_from = 0;
-        while let Some(rel_open) = text[search_from..].find(open) {
+        while let Some(rel_open) = text[search_from..].find(tag.open) {
             let start = search_from + rel_open;
-            let after_open = start + open.len();
-            let Some(rel_close) = text[after_open..].find(close) else {
+            let after_open = start + tag.open.len();
+            let Some(rel_close) = text[after_open..].find(tag.close) else {
                 break;
             };
             let close_start = after_open + rel_close;
-            let close_end = close_start + close.len();
+            let close_end = close_start + tag.close.len();
             let body = text[after_open..close_start].trim().to_string();
             blocks.push((
                 start,
                 DeveloperBlock {
-                    kind: *kind,
-                    label: (*label).to_string(),
+                    kind: tag.kind,
+                    label: tag.label.to_string(),
                     body,
                 },
             ));
@@ -106,6 +82,8 @@ fn strip_consumed(text: &str, ranges: &[(usize, usize)]) -> String {
     out
 }
 
+/// True when the text begins with the AGENTS.md project-doc marker
+/// emitted by Codex as the first user-role response item.
 pub fn looks_like_project_doc(text: &str) -> bool {
     text.trim_start().starts_with(PROJECT_DOC_PREFIX)
 }
