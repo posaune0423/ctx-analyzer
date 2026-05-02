@@ -17,25 +17,23 @@ pub struct TurnSummary {
     pub total_tokens: u64,
     pub has_subagent: bool,
     pub started_at: Option<DateTime<Utc>>,
+    pub model: Option<String>,
 }
 
 pub fn summarize(session: &Session) -> Vec<TurnSummary> {
-    session
+    let mut summaries: Vec<TurnSummary> = session
         .turns
         .iter()
         .map(|turn| {
             let mut total_tokens = 0u64;
-            let mut has_subagent = false;
+            let has_subagent = false;
             let mut prompt_preview: Option<String> = None;
 
             for seg_id in &turn.segment_ids {
-                let Some(seg) = session.segments.iter().find(|s| s.id == *seg_id) else {
+                let Some(seg) = session.segments.get(*seg_id) else {
                     continue;
                 };
                 total_tokens = total_tokens.saturating_add(seg.tokens.tokens);
-                if matches!(seg.source_kind, ContextSourceKind::SubagentMarker) {
-                    has_subagent = true;
-                }
                 if prompt_preview.is_none()
                     && matches!(seg.source_kind, ContextSourceKind::UserPrompt)
                 {
@@ -53,9 +51,12 @@ pub fn summarize(session: &Session) -> Vec<TurnSummary> {
                 total_tokens,
                 has_subagent,
                 started_at: turn.started_at,
+                model: turn.model.clone(),
             }
         })
-        .collect()
+        .collect();
+    summaries.reverse();
+    summaries
 }
 
 fn collapse_whitespace(s: &str) -> String {

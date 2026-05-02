@@ -1,4 +1,5 @@
-//! ContextAccordion — Section / Group / Row tree (`AppState::visible_nodes`).
+//! ContextAccordion — Section / Row tree (`AppState::visible_nodes`).
+//! Redesigned for 2-level hierarchy (Category > Segments).
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -20,11 +21,6 @@ pub fn render(area: Rect, buf: &mut Buffer, state: &AppState) {
     };
     let cursor = ld.breakdown_cursor;
     let breakdown = &ld.breakdown;
-    let active_tid = ld
-        .session
-        .turns
-        .get(ld.active_turn_idx)
-        .map(|t| t.id.as_str());
     let view_filter = ld.view_filter;
 
     let nodes = state.visible_nodes();
@@ -32,17 +28,7 @@ pub fn render(area: Rect, buf: &mut Buffer, state: &AppState) {
     let items: Vec<ListItem<'_>> = nodes
         .iter()
         .enumerate()
-        .map(|(idx, node)| {
-            build_item(
-                *node,
-                breakdown,
-                theme,
-                idx == cursor,
-                detail,
-                view_filter,
-                active_tid,
-            )
-        })
+        .map(|(idx, node)| build_item(*node, breakdown, theme, idx == cursor, detail, view_filter))
         .collect();
 
     let block = Block::default()
@@ -85,20 +71,10 @@ fn build_item<'a>(
     selected: bool,
     detail: bool,
     view_filter: ViewFilter,
-    active_tid: Option<&'a str>,
 ) -> ListItem<'a> {
     let lines = match node.kind {
         NodeKind::Section => section_lines(node, breakdown, theme, selected),
-        NodeKind::Group => group_lines(node, breakdown, theme, selected),
-        NodeKind::Row => row_lines(
-            node,
-            breakdown,
-            theme,
-            selected,
-            detail,
-            view_filter,
-            active_tid,
-        ),
+        NodeKind::Row => row_lines(node, breakdown, theme, selected, detail, view_filter),
     };
     ListItem::new(lines)
 }
@@ -112,11 +88,7 @@ fn section_lines<'a>(
     let Some(section) = breakdown.sections.get(node.section) else {
         return Vec::new();
     };
-    let marker = if section.groups.is_empty() {
-        "·"
-    } else {
-        "▾"
-    };
+    let marker = if section.rows.is_empty() { "·" } else { "▾" };
     let row_style = if selected {
         theme.row.selected
     } else {
@@ -126,58 +98,12 @@ fn section_lines<'a>(
     let token = theme.token_for(Severity::from_total(section.total_tokens));
     let mut spans: Vec<Span<'_>> = vec![
         Span::styled(format!("{marker} "), row_style),
-        Span::styled(
-            section.category.label(),
-            apply_selection(cat_style, selected, theme),
-        ),
+        Span::styled(section.label(), apply_selection(cat_style, selected, theme)),
         Span::raw("  "),
         Span::styled(
             format!("~{}", fmt_thousands(section.total_tokens)),
             token.style,
         ),
-    ];
-    if !token.symbol.is_empty() {
-        spans.push(Span::raw(" "));
-        spans.push(Span::styled(token.symbol, token.style));
-    }
-    vec![Line::from(spans)]
-}
-
-fn group_lines<'a>(
-    node: VisibleNode,
-    breakdown: &'a Breakdown,
-    theme: &'a Theme,
-    selected: bool,
-) -> Vec<Line<'a>> {
-    let g_idx = match node.group {
-        Some(g) => g,
-        None => return Vec::new(),
-    };
-    let Some(section) = breakdown.sections.get(node.section) else {
-        return Vec::new();
-    };
-    let Some(group) = section.groups.get(g_idx) else {
-        return Vec::new();
-    };
-    let token = theme.token_for(Severity::from_total(group.total_tokens));
-    let row_style = if selected {
-        theme.row.selected
-    } else {
-        theme.text.normal
-    };
-    let mut spans: Vec<Span<'_>> = vec![
-        Span::styled("  ▸ ", row_style),
-        Span::styled(
-            group.kind.label(),
-            apply_selection(theme.text.title, selected, theme),
-        ),
-        Span::raw("  "),
-        Span::styled(
-            format!("~{}", fmt_thousands(group.total_tokens)),
-            token.style,
-        ),
-        Span::raw("  "),
-        Span::styled(format!("({} segments)", group.rows.len()), theme.text.muted),
     ];
     if !token.symbol.is_empty() {
         spans.push(Span::raw(" "));
@@ -194,12 +120,7 @@ fn row_lines<'a>(
     selected: bool,
     detail: bool,
     view_filter: ViewFilter,
-    active_tid: Option<&'a str>,
 ) -> Vec<Line<'a>> {
-    let g_idx = match node.group {
-        Some(g) => g,
-        None => return Vec::new(),
-    };
     let r_idx = match node.row {
         Some(r) => r,
         None => return Vec::new(),
@@ -207,10 +128,7 @@ fn row_lines<'a>(
     let Some(section) = breakdown.sections.get(node.section) else {
         return Vec::new();
     };
-    let Some(group) = section.groups.get(g_idx) else {
-        return Vec::new();
-    };
-    let Some(row) = group.rows.get(r_idx) else {
+    let Some(row) = section.rows.get(r_idx) else {
         return Vec::new();
     };
     let token = theme.token_for(row.severity);
@@ -221,7 +139,7 @@ fn row_lines<'a>(
     };
     let label = truncate_chars(&row.label, LABEL_TRUNCATE_CHARS);
     let mut spans: Vec<Span<'_>> = vec![
-        Span::styled("      · ", row_style),
+        Span::styled("  · ", row_style),
         Span::styled(label, apply_selection(theme.text.normal, selected, theme)),
         Span::raw("  "),
         Span::styled(
@@ -244,20 +162,14 @@ fn row_lines<'a>(
         spans.push(Span::styled(tag, theme.text.muted));
     }
 
-    if row.turn_id.as_deref() == active_tid {
-        spans.push(Span::raw("  "));
-        spans.push(Span::styled("★ this turn", theme.text.badge));
-    }
-
     let mut lines = vec![Line::from(spans)];
 
     if detail && selected {
-        let path = format!("        path: {}", row.source_ref.file.display());
+        let path = format!("    path: {}", row.source_ref.file.display());
         lines.push(Line::from(Span::styled(path, theme.text.path)));
         let meta = format!(
-            "        category: {} · source: {} · confidence: {:?}",
-            section.category.label(),
-            group.kind.label(),
+            "    category: {} · confidence: {:?}",
+            section.label(),
             row.confidence
         );
         lines.push(Line::from(Span::styled(meta, theme.text.muted)));

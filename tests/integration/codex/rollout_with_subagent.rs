@@ -33,7 +33,12 @@ fn parses_bundled_codex_subagent_rollout() {
 
     // Single turn
     assert_eq!(session.turns.len(), 1, "exactly one turn in fixture");
-    assert_eq!(session.turns[0].id, "019d72f3-f851-7591-a9c1-e1b6484f3293");
+    let turn = &session.turns[0];
+    assert_eq!(turn.id, "019d72f3-f851-7591-a9c1-e1b6484f3293");
+
+    // Timestamp from task_started (line 2).
+    let started_at = turn.started_at.expect("turn started_at populated");
+    assert_eq!(started_at.to_rfc3339(), "2026-04-09T15:54:54.177+00:00");
 
     // Observed totals from final non-null token_count event (line 95).
     let totals = session
@@ -47,32 +52,27 @@ fn parses_bundled_codex_subagent_rollout() {
 
     // Categories present and populated
     let by_cat = |c: ContextCategory| session.segments.iter().filter(move |s| s.category == c);
-    assert!(by_cat(ContextCategory::System).count() >= 1, "system");
-    let cfg_kinds: Vec<_> = by_cat(ContextCategory::Configuration)
-        .map(|s| s.source_kind)
-        .collect();
-    for required in [
-        ContextSourceKind::PermissionsInstructions,
-        ContextSourceKind::AppsInstructions,
-        ContextSourceKind::SkillsInstructions,
-        ContextSourceKind::PluginsInstructions,
-        ContextSourceKind::ProjectInstructions,
-    ] {
-        assert!(
-            cfg_kinds.contains(&required),
-            "configuration missing {:?}; got {:?}",
-            required,
-            cfg_kinds
-        );
-    }
     assert!(
-        by_cat(ContextCategory::Runtime).any(|s| s.source_kind == ContextSourceKind::FunctionCall),
-        "runtime missing function calls"
+        by_cat(ContextCategory::SystemPrompt).count() >= 1,
+        "system prompt"
     );
+
+    // Config categories are now granular
+    assert!(by_cat(ContextCategory::SystemPrompt)
+        .any(|s| s.source_kind == ContextSourceKind::PermissionsInstructions));
     assert!(
-        by_cat(ContextCategory::Delegated)
-            .any(|s| s.source_kind == ContextSourceKind::SubagentMarker),
-        "delegated missing subagent marker"
+        by_cat(ContextCategory::Apps).any(|s| s.source_kind == ContextSourceKind::AppsInstructions)
+    );
+    assert!(by_cat(ContextCategory::Skills)
+        .any(|s| s.source_kind == ContextSourceKind::SkillsInstructions));
+    assert!(by_cat(ContextCategory::Plugins)
+        .any(|s| s.source_kind == ContextSourceKind::PluginsInstructions));
+    assert!(by_cat(ContextCategory::ProjectDoc)
+        .any(|s| s.source_kind == ContextSourceKind::ProjectInstructions));
+
+    assert!(
+        by_cat(ContextCategory::ToolCall).any(|s| s.source_kind == ContextSourceKind::FunctionCall),
+        "tool call missing function calls"
     );
     assert!(
         by_cat(ContextCategory::Unknown)

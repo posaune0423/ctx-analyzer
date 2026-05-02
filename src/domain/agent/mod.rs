@@ -7,12 +7,16 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 pub enum AgentKind {
     Codex,
+    ClaudeCode,
+    Gemini,
 }
 
 impl AgentKind {
     pub fn label(self) -> &'static str {
         match self {
             AgentKind::Codex => "Codex",
+            AgentKind::ClaudeCode => "Claude Code",
+            AgentKind::Gemini => "Gemini",
         }
     }
 }

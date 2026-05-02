@@ -10,13 +10,29 @@ use commands::{Cli, Commands};
 pub fn run(cli: Cli) -> anyhow::Result<()> {
     match cli.cmd {
         Commands::Inspect {
-            file,
+            project,
+            agent,
             session,
             theme,
-        } => commands::inspect::run(file.as_deref(), session.as_deref(), theme.as_deref()),
-        Commands::Export { file, session, out } => {
-            commands::export::run(file.as_deref(), session.as_deref(), out.as_deref())
+        } => commands::inspect::run(
+            project.as_deref(),
+            agent.as_deref(),
+            session.as_deref(),
+            theme.as_deref(),
+        ),
+        Commands::Export {
+            project,
+            agent,
+            session,
+            out,
+        } => commands::export::run(
+            project.as_deref(),
+            agent.as_deref(),
+            session.as_deref(),
+            out.as_deref(),
+        ),
+        Commands::Doctor { project, agent } => {
+            commands::doctor::run(project.as_deref(), agent.as_deref())
         }
-        Commands::Doctor { file } => commands::doctor::run(file.as_deref()),
     }
 }

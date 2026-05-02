@@ -7,12 +7,12 @@ The first screen the user sees when launching `ctx-analyzer inspect` without
 ## Layout (120×24)
 
 ```
-┌─ ctx-analyzer · Select Session ────────────────────────────────────────────────────────────────────────────────────┐
-│  Created          Updated         CWD                              Conversation                                     │
-│> 2 min ago        30 sec ago      ~/proj/ctx-analyzer              Inspect 3-stage navigation                       │
-│  1 h ago          35 min ago      ~/proj/foo                       Investigate lazy pagination cap                  │
-│  2 h ago          2 h ago         ~/proj/bar                       Explain the codebase                             │
-│  3 d ago          3 d ago         ~/proj/baz                       —                                                │
+┌─ Sessions · ctx-analyzer · Codex ──────────────────────────────────────────────────────────────────────────────────┐
+│  Created          Updated         Conversation                                                                      │
+│> 2 min ago        30 sec ago      Inspect 3-stage navigation                                                        │
+│  1 h ago          35 min ago      Investigate lazy pagination cap                                                   │
+│  2 h ago          2 h ago         Explain the codebase                                                              │
+│  3 d ago          3 d ago         —                                                                                 │
 │  …                                                                                                                  │
 │                                                                                                                     │
 │                                                                                                                     │
@@ -30,17 +30,16 @@ The first screen the user sees when launching `ctx-analyzer inspect` without
 │                                                                                                                     │
 │                                                                                                                     │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
- ↑↓ select · enter open · q quit
+ ↑↓ select · →/l/enter open · q quit
 ```
 
 ## Column semantics
 
-| Column         | Source                                                                  | Width hint |
-| -------------- | ----------------------------------------------------------------------- | ---------- |
-| `Created`      | rollout file `created_at` (fs ctime, fallback: filename date prefix)    | 16         |
-| `Updated`      | rollout file `modified_at`                                              | 16         |
-| `CWD`          | first-line `session_meta.cwd`, home-dir collapsed to `~/`, middle-trunc | 32         |
-| `Conversation` | `~/.codex/session_index.jsonl` `thread_name` (`—` when missing)         | flex       |
+| Column         | Source                                                               | Width hint |
+| -------------- | -------------------------------------------------------------------- | ---------- |
+| `Created`      | rollout file `created_at` (fs ctime, fallback: filename date prefix) | 16         |
+| `Updated`      | rollout file `modified_at`                                           | 16         |
+| `Conversation` | `~/.codex/session_index.jsonl` `thread_name` (`—` when missing)      | flex       |
 
 Times use a relative humanizer (`just now`, `30 sec ago`, `2 min ago`,
 `1 h ago`, `3 d ago`).
@@ -50,7 +49,7 @@ Times use a relative humanizer (`just now`, `30 sec ago`, `2 min ago`,
 When no rollouts are discovered:
 
 ```
-┌─ ctx-analyzer · Select Session ────────────────────────────────────────────────────────────────────────────────────┐
+┌─ Sessions · ctx-analyzer · Codex ──────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                                     │
 │                                  No Codex sessions found under $CODEX_HOME                                          │
 │                                                                                                                     │
@@ -66,6 +65,7 @@ When no rollouts are discovered:
 | ----------- | -------------------------------------- |
 | `↑` / `k`   | move cursor up                         |
 | `↓` / `j`   | move cursor down                       |
+| `→` / `l`   | load session, advance to **Turn List** |
 | `Enter`     | load session, advance to **Turn List** |
 | `q` / `Esc` | quit                                   |
 | `?`         | toggle help overlay                    |

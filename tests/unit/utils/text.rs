@@ -23,11 +23,11 @@ fn longer_than_limit_gets_ellipsis_appended() {
 }
 
 #[test]
-fn multibyte_counted_by_chars_not_bytes() {
-    // 5 hiragana = 15 UTF-8 bytes but 5 chars; limit 3 -> 3 chars + …
-    let out = truncate_chars("あいうえお", 3);
-    assert_eq!(out.chars().count(), 4);
-    assert!(out.starts_with("あいう"));
+fn multibyte_counted_by_display_width_not_bytes() {
+    // 5 hiragana = 15 UTF-8 bytes but 10 display width; limit 4 -> "あい…"
+    let out = truncate_chars("あいうえお", 4);
+    assert_eq!(out.chars().count(), 3);
+    assert!(out.starts_with("あい"));
     assert!(out.ends_with('…'));
 }
 

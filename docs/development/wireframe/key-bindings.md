@@ -43,35 +43,33 @@ expectations must be updated together.
 
 ## Breakdown
 
-| Key                        | Action                                                              |
-| -------------------------- | ------------------------------------------------------------------- |
-| `↑` / `k`                  | `MoveUp`                                                            |
-| `↓` / `j`                  | `MoveDown`                                                          |
-| `←` / `h`                  | `MoveLeft` (collapse)                                               |
-| `→` / `l`                  | `MoveRight` (expand) — on a **leaf row** behaves as `OpenPreview`   |
-| `Enter`                    | `Confirm` (toggle expand on Section/Group, OpenPreview on leaf Row) |
-| `Space`                    | `OpenPreview` (leaf row only)                                       |
-| `p`                        | `OpenPreview`                                                       |
-| `o`                        | `OpenInEditor`                                                      |
-| `m`                        | `ToggleViewFilter` (cumulative ↔ delta)                             |
-| `d`                        | `ToggleDetail`                                                      |
-| `r`                        | `Refresh`                                                           |
-| `t`                        | `OpenTurnSelector` (jump to TurnList)                               |
-| `s`                        | `OpenSessionSelector` (jump to SessionList)                         |
-| `g`                        | `SessionGraphPlaceholder` (footer message)                          |
-| `/`                        | `StartSearch` (footer placeholder)                                  |
-| `q` / `Esc`                | `PopStage` (back to TurnList)                                       |
-| Mouse `Down(Left)` on path | `OpenInEditor` for the clicked region                               |
+| Key         | Action                                                              |
+| ----------- | ------------------------------------------------------------------- |
+| `↑` / `k`   | `MoveUp`                                                            |
+| `↓` / `j`   | `MoveDown`                                                          |
+| `←` / `h`   | `MoveLeft` (collapse)                                               |
+| `→` / `l`   | `MoveRight` (expand) — on a **leaf row** behaves as `OpenPreview`   |
+| `Enter`     | `Confirm` (toggle expand on Section/Group, OpenPreview on leaf Row) |
+| `Space`     | `OpenPreview` (leaf row only)                                       |
+| `p`         | `OpenPreview`                                                       |
+| `o`         | `OpenInEditor`                                                      |
+| `m`         | `ToggleViewFilter` (cumulative ↔ delta)                             |
+| `d`         | `ToggleDetail`                                                      |
+| `r`         | `Refresh`                                                           |
+| `t`         | `OpenTurnSelector` (jump to TurnList)                               |
+| `s`         | `OpenSessionSelector` (jump to SessionList)                         |
+| `g`         | `SessionGraphPlaceholder` (footer message)                          |
+| `/`         | `StartSearch` (footer placeholder)                                  |
+| `q` / `Esc` | `PopStage` (back to TurnList)                                       |
 
 ## Preview overlay
 
-| Key                        | Action              |
-| -------------------------- | ------------------- |
-| `↑` / `k`                  | `MoveUp` (scroll)   |
-| `↓` / `j`                  | `MoveDown` (scroll) |
-| `o`                        | `OpenInEditor`      |
-| Mouse `Down(Left)` on path | `OpenInEditor`      |
-| `q` / `Esc`                | `CloseOverlay`      |
+| Key         | Action              |
+| ----------- | ------------------- |
+| `↑` / `k`   | `MoveUp` (scroll)   |
+| `↓` / `j`   | `MoveDown` (scroll) |
+| `o`         | `OpenInEditor`      |
+| `q` / `Esc` | `CloseOverlay`      |
 
 ## Help overlay
 

@@ -6,18 +6,12 @@ use std::path::Path;
 use anyhow::Context;
 
 use crate::adapters::codex::CodexAdapter;
-use crate::application::usecases::discover_sessions;
 use crate::domain::Session;
 use crate::ports::{AgentAdapter, TokenEstimator};
 
-pub fn run(
-    file: Option<&Path>,
-    session: Option<&str>,
-    estimator: &dyn TokenEstimator,
-) -> anyhow::Result<Session> {
-    let path = discover_sessions::resolve_path(file, session)?;
+pub fn run(path: &Path, estimator: &dyn TokenEstimator) -> anyhow::Result<Session> {
     let adapter = CodexAdapter::new();
     adapter
-        .parse_file(&path, estimator)
+        .parse_file(path, estimator)
         .with_context(|| format!("failed to parse {}", path.display()))
 }

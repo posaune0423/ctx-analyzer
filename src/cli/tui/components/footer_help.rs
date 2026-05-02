@@ -14,7 +14,7 @@ pub fn render(area: Rect, buf: &mut Buffer, state: &AppState) {
         Mode::SessionList => "↑↓ select · enter open · ? help · q quit",
         Mode::TurnList => "↑↓ select · enter inspect · s sessions · ? help · q back",
         Mode::Breakdown => "↑↓ move · ←→ expand · enter/p/space preview · l drill · o open · m mode · t turns · s sess · ? help · q back",
-        Mode::Preview => "↑↓ scroll · o open · click path · esc close",
+        Mode::Preview => "↑↓ scroll · o open · esc close",
         Mode::Help => "esc close",
     };
 

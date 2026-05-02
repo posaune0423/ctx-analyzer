@@ -51,7 +51,7 @@ fn normalize_existing(path: &Path) -> PathBuf {
 pub fn session_cwd_in_project(session_cwd: &Path, project_root: &Path) -> bool {
     let s = normalize_existing(session_cwd);
     let p = normalize_existing(project_root);
-    p.strip_prefix(&s).is_ok() || s.strip_prefix(&p).is_ok()
+    s.strip_prefix(&p).is_ok()
 }
 
 #[cfg(test)]
@@ -85,7 +85,7 @@ mod tests {
         let root = resolve_inspect_project_root(&deep);
         assert_eq!(root, deep);
         let parent = deep.parent().unwrap();
-        assert!(session_cwd_in_project(parent, &deep));
+        assert!(!session_cwd_in_project(parent, &deep));
         assert!(session_cwd_in_project(&deep, parent));
         let _ = fs::remove_dir_all(&base);
     }

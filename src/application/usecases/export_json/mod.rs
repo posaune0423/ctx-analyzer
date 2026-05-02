@@ -21,7 +21,7 @@ impl Exporter for JsonExporter {
                 .collect();
             let total: u64 = segs.iter().map(|s| s.tokens.tokens).sum();
             categories.insert(
-                category_key(category).to_string(),
+                cat_to_str(category).to_string(),
                 json!({
                     "total_tokens": total,
                     "segments": segs,
@@ -62,12 +62,18 @@ fn totals_value(t: TokenEstimate) -> Value {
     })
 }
 
-fn category_key(c: ContextCategory) -> &'static str {
-    match c {
-        ContextCategory::System => "system",
-        ContextCategory::Configuration => "configuration",
-        ContextCategory::Runtime => "runtime",
-        ContextCategory::Delegated => "delegated",
+fn cat_to_str(cat: ContextCategory) -> &'static str {
+    match cat {
+        ContextCategory::SystemPrompt => "system_prompt",
+        ContextCategory::ProjectDoc => "project_doc",
+        ContextCategory::Rules => "rules",
+        ContextCategory::Skills => "skills",
+        ContextCategory::Mcp => "mcp",
+        ContextCategory::Apps => "apps",
+        ContextCategory::Plugins => "plugins",
+        ContextCategory::UserPrompt => "user_prompt",
+        ContextCategory::ToolCall => "tool_call",
+        ContextCategory::AssistantMessage => "assistant_message",
         ContextCategory::Unknown => "unknown",
     }
 }

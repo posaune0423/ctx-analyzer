@@ -9,22 +9,23 @@ use serde::Serialize;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ContextSourceKind {
-    // Configuration
+    // Instructions & Rules
     BaseInstructions,
     UserInstructions,
+    ProjectInstructions,
+    Rules,
+    // Capabilities
     PermissionsInstructions,
     AppsInstructions,
     SkillsInstructions,
     PluginsInstructions,
-    ProjectInstructions,
+    McpInstructions,
     // Runtime
     UserPrompt,
     AssistantMessage,
     FunctionCall,
     FunctionCallOutput,
     Reasoning,
-    // Delegated
-    SubagentMarker,
     // Unknown
     EncryptedReasoning,
 }
@@ -32,20 +33,21 @@ pub enum ContextSourceKind {
 impl ContextSourceKind {
     pub fn label(self) -> &'static str {
         match self {
-            ContextSourceKind::BaseInstructions => "Base Instructions",
-            ContextSourceKind::UserInstructions => "User Instructions",
-            ContextSourceKind::PermissionsInstructions => "Permissions Instructions",
-            ContextSourceKind::AppsInstructions => "Apps Instructions",
-            ContextSourceKind::SkillsInstructions => "Skills Instructions",
-            ContextSourceKind::PluginsInstructions => "Plugins Instructions",
-            ContextSourceKind::ProjectInstructions => "Project Instructions",
-            ContextSourceKind::UserPrompt => "User Prompts",
-            ContextSourceKind::AssistantMessage => "Assistant Messages",
-            ContextSourceKind::FunctionCall => "Function Calls",
-            ContextSourceKind::FunctionCallOutput => "Function Call Outputs",
-            ContextSourceKind::Reasoning => "Reasoning",
-            ContextSourceKind::SubagentMarker => "Subagent Marker",
-            ContextSourceKind::EncryptedReasoning => "Encrypted Reasoning",
+            ContextSourceKind::BaseInstructions => "system prompt",
+            ContextSourceKind::UserInstructions => "user instructions",
+            ContextSourceKind::ProjectInstructions => "project instructions",
+            ContextSourceKind::Rules => "rules",
+            ContextSourceKind::PermissionsInstructions => "permissions",
+            ContextSourceKind::AppsInstructions => "apps",
+            ContextSourceKind::SkillsInstructions => "skills",
+            ContextSourceKind::PluginsInstructions => "plugins",
+            ContextSourceKind::McpInstructions => "mcp",
+            ContextSourceKind::UserPrompt => "user prompt",
+            ContextSourceKind::AssistantMessage => "assistant message",
+            ContextSourceKind::FunctionCall => "tool call",
+            ContextSourceKind::FunctionCallOutput => "tool output",
+            ContextSourceKind::Reasoning => "reasoning",
+            ContextSourceKind::EncryptedReasoning => "encrypted reasoning",
         }
     }
 }

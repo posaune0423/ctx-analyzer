@@ -5,7 +5,6 @@
 use std::path::PathBuf;
 
 use ctx_analyzer::adapters::codex::CodexAdapter;
-use ctx_analyzer::domain::{ContextCategory, ContextSourceKind};
 use ctx_analyzer::infra::CharsPer4Estimator;
 use ctx_analyzer::ports::AgentAdapter;
 
@@ -28,16 +27,6 @@ fn subagent_rollout_is_recovered_as_delegated_child() {
         "MVP: cross-file linking deferred"
     );
 
-    let delegated_marker_count = session
-        .segments
-        .iter()
-        .filter(|s| {
-            s.category == ContextCategory::Delegated
-                && s.source_kind == ContextSourceKind::SubagentMarker
-        })
-        .count();
-    assert_eq!(
-        delegated_marker_count, 1,
-        "exactly one SubagentMarker emitted for a delegated rollout"
-    );
+    // Subagent is now handled as metadata, no longer a context segment.
+    assert_eq!(session.source.subagent.as_deref(), Some("review"));
 }

@@ -40,17 +40,35 @@ symbol = "!!"
 style = "unknown,dim"
 symbol = "?"
 
-[context.system]
-style = "magenta,bold"
+[context.system_prompt]
+style = "accent,bold"
 
-[context.configuration]
-style = "cyan,bold"
+[context.project_doc]
+style = "accent,bold"
 
-[context.runtime]
+[context.rules]
+style = "accent"
+
+[context.skills]
+style = "accent"
+
+[context.mcp]
+style = "accent"
+
+[context.apps]
+style = "accent"
+
+[context.plugins]
+style = "accent"
+
+[context.user_prompt]
 style = "green,bold"
 
-[context.delegated]
-style = "yellow,bold"
+[context.tool_call]
+style = "green"
+
+[context.assistant_message]
+style = "green"
 
 [context.unknown]
 style = "unknown,dim"

@@ -4,7 +4,7 @@
 use crate::constants::severity::{
     SEVERITY_CRITICAL, SEVERITY_HIGH, SEVERITY_MEDIUM, SYMBOL_CRITICAL, SYMBOL_HIGH, SYMBOL_UNKNOWN,
 };
-use crate::domain::{Confidence, ContextCategory, ContextSourceKind, SourceRef, TokenEstimate};
+use crate::domain::{AgentKind, Confidence, ContextCategory, SourceRef, TokenEstimate};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
@@ -51,15 +51,15 @@ pub struct Breakdown {
 #[derive(Debug, Clone)]
 pub struct CategorySection {
     pub category: ContextCategory,
-    pub total_tokens: u64,
-    pub groups: Vec<SourceGroup>,
-}
-
-#[derive(Debug, Clone)]
-pub struct SourceGroup {
-    pub kind: ContextSourceKind,
+    pub agent: AgentKind,
     pub total_tokens: u64,
     pub rows: Vec<SegmentRow>,
+}
+
+impl CategorySection {
+    pub fn label(&self) -> &'static str {
+        self.category.label(self.agent)
+    }
 }
 
 #[derive(Debug, Clone)]

@@ -47,11 +47,11 @@ longer skipped. Instead the modal:
 
 ## Header rows
 
-| Field    | Source                                                                                                                    |
-| -------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Title    | `Preview · {segment.label} · ~{tokens} tokens` (`(turn N)` suffix when `segment.turn_id` is set)                          |
-| `Source` | `segment.source_ref.file`:`segment.source_ref.line`. Click region. `[click to open]` hint shown when mouse capture is on. |
-| `Label`  | `segment.label`                                                                                                           |
+| Field    | Source                                                                                           |
+| -------- | ------------------------------------------------------------------------------------------------ |
+| Title    | `Preview · {segment.label} · ~{tokens} tokens` (`(turn N)` suffix when `segment.turn_id` is set) |
+| `Source` | `segment.source_ref.file`:`segment.source_ref.line`.                                             |
+| `Label`  | `segment.label`                                                                                  |
 
 ## Body extraction matrix
 
@@ -88,3 +88,4 @@ clamped, append a final dim line `(truncated — body exceeded 65,536 chars)`.
 | `o`                      | open source file in editor |
 | Mouse left-click on path | open source file in editor |
 | `Esc` / `q`              | close overlay              |
+|                          |

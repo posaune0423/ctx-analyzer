@@ -42,21 +42,15 @@ pub struct LoadedState {
     pub view_filter: ViewFilter,
     pub breakdown: Breakdown,
     pub expanded_sections: Vec<bool>,
-    pub expanded_groups: Vec<Vec<bool>>,
     pub breakdown_cursor: usize,
 }
 
 impl LoadedState {
     fn new(session: Session, source_path: PathBuf, active_session_idx: usize) -> Self {
         let turn_summaries = list_session_turns::summarize(&session);
-        let turn_list_cursor = turn_summaries.len().saturating_sub(1);
+        let turn_list_cursor = 0;
         let breakdown = build_context_breakdown::group(&session);
         let expanded_sections = vec![true; breakdown.sections.len()];
-        let expanded_groups = breakdown
-            .sections
-            .iter()
-            .map(|s| vec![false; s.groups.len()])
-            .collect();
         Self {
             session,
             source_path,
@@ -64,10 +58,9 @@ impl LoadedState {
             turn_list_cursor,
             active_turn_idx: turn_list_cursor,
             turn_summaries,
-            view_filter: ViewFilter::Cumulative,
+            view_filter: ViewFilter::Delta,
             breakdown,
             expanded_sections,
-            expanded_groups,
             breakdown_cursor: 0,
         }
     }
@@ -82,12 +75,6 @@ impl LoadedState {
             }
         };
         self.expanded_sections = vec![true; self.breakdown.sections.len()];
-        self.expanded_groups = self
-            .breakdown
-            .sections
-            .iter()
-            .map(|s| vec![false; s.groups.len()])
-            .collect();
     }
 }
 
@@ -126,7 +113,6 @@ pub struct AppState {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeKind {
     Section,
-    Group,
     Row,
 }
 
@@ -134,7 +120,6 @@ pub enum NodeKind {
 pub struct VisibleNode {
     pub kind: NodeKind,
     pub section: usize,
-    pub group: Option<usize>,
     pub row: Option<usize>,
 }
 
@@ -243,42 +228,23 @@ impl AppState {
         };
         let mut out = Vec::new();
         for (s_idx, section) in ld.breakdown.sections.iter().enumerate() {
-            if section.total_tokens == 0 && section.groups.is_empty() {
+            if section.total_tokens == 0 && section.rows.is_empty() {
                 continue;
             }
             out.push(VisibleNode {
                 kind: NodeKind::Section,
                 section: s_idx,
-                group: None,
                 row: None,
             });
             if !ld.expanded_sections.get(s_idx).copied().unwrap_or(false) {
                 continue;
             }
-            for (g_idx, group) in section.groups.iter().enumerate() {
+            for (r_idx, _row) in section.rows.iter().enumerate() {
                 out.push(VisibleNode {
-                    kind: NodeKind::Group,
+                    kind: NodeKind::Row,
                     section: s_idx,
-                    group: Some(g_idx),
-                    row: None,
+                    row: Some(r_idx),
                 });
-                let g_expanded = ld
-                    .expanded_groups
-                    .get(s_idx)
-                    .and_then(|v| v.get(g_idx))
-                    .copied()
-                    .unwrap_or(false);
-                if !g_expanded {
-                    continue;
-                }
-                for (r_idx, _row) in group.rows.iter().enumerate() {
-                    out.push(VisibleNode {
-                        kind: NodeKind::Row,
-                        section: s_idx,
-                        group: Some(g_idx),
-                        row: Some(r_idx),
-                    });
-                }
             }
         }
         out
@@ -361,8 +327,10 @@ impl AppState {
                         ld.rebuild_breakdown();
                         ld.breakdown_cursor = 0;
                         self.footer_message = Some(match ld.view_filter {
-                            ViewFilter::Cumulative => "view: cumulative".into(),
-                            ViewFilter::Delta => "view: delta (this turn)".into(),
+                            ViewFilter::Cumulative => {
+                                "view: cumulative (full context history)".into()
+                            }
+                            ViewFilter::Delta => "view: scoped (this turn only)".into(),
                         });
                     }
                 }
@@ -470,22 +438,9 @@ impl AppState {
                     *flag = false;
                 }
             }
-            NodeKind::Group => {
-                if let Some(g) = node.group {
-                    if let Some(row) = ld.expanded_groups.get_mut(node.section) {
-                        if let Some(flag) = row.get_mut(g) {
-                            *flag = false;
-                        }
-                    }
-                }
-            }
             NodeKind::Row => {
-                if let Some(g) = node.group {
-                    if let Some(row) = ld.expanded_groups.get_mut(node.section) {
-                        if let Some(flag) = row.get_mut(g) {
-                            *flag = false;
-                        }
-                    }
+                if let Some(flag) = ld.expanded_sections.get_mut(node.section) {
+                    *flag = false;
                 }
             }
         }
@@ -522,15 +477,6 @@ impl AppState {
                     *flag = true;
                 }
             }
-            NodeKind::Group => {
-                if let Some(g) = node.group {
-                    if let Some(row) = ld.expanded_groups.get_mut(node.section) {
-                        if let Some(flag) = row.get_mut(g) {
-                            *flag = true;
-                        }
-                    }
-                }
-            }
             NodeKind::Row => {}
         }
     }
@@ -557,15 +503,6 @@ impl AppState {
                                 *flag = !*flag;
                             }
                         }
-                        NodeKind::Group => {
-                            if let Some(g) = node.group {
-                                if let Some(row) = ld.expanded_groups.get_mut(node.section) {
-                                    if let Some(flag) = row.get_mut(g) {
-                                        *flag = !*flag;
-                                    }
-                                }
-                            }
-                        }
                         NodeKind::Row => {
                             self.open_preview();
                         }
@@ -582,7 +519,7 @@ impl AppState {
             return;
         };
         let estimator = estimate_tokens::default_estimator();
-        match analyze_workspace::run(Some(&item.path), None, &estimator) {
+        match analyze_workspace::run(&item.path, &estimator) {
             Ok(session) => {
                 self.loaded = Some(LoadedState::new(session, item.path, idx));
                 self.session_list_cursor = idx;
@@ -600,8 +537,9 @@ impl AppState {
         let Some(ld) = self.loaded.as_mut() else {
             return;
         };
-        ld.active_turn_idx = ld.turn_list_cursor;
-        ld.view_filter = ViewFilter::Cumulative;
+        let summary = &ld.turn_summaries[ld.turn_list_cursor];
+        ld.active_turn_idx = summary.index.saturating_sub(1);
+        ld.view_filter = ViewFilter::Delta;
         ld.rebuild_breakdown();
         ld.breakdown_cursor = 0;
         self.stage = Stage::Breakdown;
@@ -648,8 +586,7 @@ impl AppState {
     ) -> Option<&crate::application::view_models::context_breakdown::SegmentRow> {
         let ld = self.loaded.as_ref()?;
         let section = ld.breakdown.sections.get(node.section)?;
-        let group = section.groups.get(node.group?)?;
-        group.rows.get(node.row?)
+        section.rows.get(node.row?)
     }
 
     fn editor_target(&self) -> Option<EditorTarget> {

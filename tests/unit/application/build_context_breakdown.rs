@@ -1,5 +1,5 @@
-//! Unit-level shape test: an empty session produces 5 empty category
-//! sections (System / Configuration / Runtime / Delegated / Unknown).
+//! Unit-level shape test: an empty session produces 11 empty category
+//! sections.
 
 use std::path::PathBuf;
 
@@ -26,14 +26,13 @@ fn empty_session() -> Session {
 }
 
 #[test]
-fn empty_session_yields_all_five_category_sections() {
+fn empty_session_yields_all_category_sections() {
     let bd = build_context_breakdown::group(&empty_session());
     let cats: Vec<_> = bd.sections.iter().map(|s| s.category).collect();
-    assert_eq!(cats.len(), 5);
-    assert!(cats.contains(&ContextCategory::System));
-    assert!(cats.contains(&ContextCategory::Configuration));
-    assert!(cats.contains(&ContextCategory::Runtime));
-    assert!(cats.contains(&ContextCategory::Delegated));
+    assert_eq!(cats.len(), 11);
+    assert!(cats.contains(&ContextCategory::SystemPrompt));
+    assert!(cats.contains(&ContextCategory::ProjectDoc));
+    assert!(cats.contains(&ContextCategory::UserPrompt));
     assert!(cats.contains(&ContextCategory::Unknown));
     assert_eq!(bd.total_tokens, 0);
 }

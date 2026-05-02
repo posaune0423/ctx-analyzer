@@ -19,7 +19,7 @@ fn dump_frame_to_stdout() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests/fixtures/codex/rollout-with-subagent/ctx.jsonl");
     let estimator = estimate_tokens::default_estimator();
-    let session = analyze_workspace::run(Some(&path), None, &estimator).unwrap();
+    let session = analyze_workspace::run(&path, &estimator).unwrap();
     let mut state = AppState::new_with_loaded_session(
         session,
         Vec::new(),

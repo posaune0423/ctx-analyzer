@@ -15,7 +15,6 @@ const HELP: &[(&str, &str)] = &[
     ("l / enter", "on leaf row: open preview"),
     ("space / p", "preview segment"),
     ("o", "open source in editor"),
-    ("click path", "open in editor (mouse)"),
     ("s", "session list"),
     ("t", "turn list (from breakdown)"),
     ("m", "toggle cumulative / delta view"),

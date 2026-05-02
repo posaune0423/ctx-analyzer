@@ -47,7 +47,7 @@ pub fn dispatch(mode: Mode, event: KeyEvent) -> KeyAction {
             KeyCode::Char('?') => KeyAction::ToggleHelp,
             KeyCode::Up | KeyCode::Char('k') => KeyAction::MoveUp,
             KeyCode::Down | KeyCode::Char('j') => KeyAction::MoveDown,
-            KeyCode::Enter => KeyAction::Confirm,
+            KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => KeyAction::Confirm,
             _ => KeyAction::Noop,
         },
         Mode::TurnList if plain => match event.code {
@@ -55,7 +55,7 @@ pub fn dispatch(mode: Mode, event: KeyEvent) -> KeyAction {
             KeyCode::Char('?') => KeyAction::ToggleHelp,
             KeyCode::Up | KeyCode::Char('k') => KeyAction::MoveUp,
             KeyCode::Down | KeyCode::Char('j') => KeyAction::MoveDown,
-            KeyCode::Enter => KeyAction::Confirm,
+            KeyCode::Right | KeyCode::Char('l') | KeyCode::Enter => KeyAction::Confirm,
             KeyCode::Char('s') => KeyAction::OpenSessionList,
             _ => KeyAction::Noop,
         },

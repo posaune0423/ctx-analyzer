@@ -4,7 +4,7 @@ use crate::adapters::codex::{discovery, CodexAdapter};
 use crate::application::usecases::estimate_tokens;
 use crate::ports::AgentAdapter;
 
-pub fn run(file: Option<&Path>) -> anyhow::Result<()> {
+pub fn run(project: Option<&Path>, agent: Option<&str>) -> anyhow::Result<()> {
     let home = discovery::codex_home();
     println!("ctx-analyzer doctor");
     println!("  codex home  : {}", home.display());
@@ -17,13 +17,18 @@ pub fn run(file: Option<&Path>) -> anyhow::Result<()> {
     if rollouts.len() > 5 {
         println!("    … {} more", rollouts.len() - 5);
     }
-    if let Some(p) = file {
+
+    // Instead of taking a specific file, doctor can just resolve the latest session
+    // for the project/agent to test the pipeline.
+    let estimator = estimate_tokens::default_estimator();
+    if let Ok(session_path) =
+        crate::application::usecases::discover_sessions::resolve_path(project, agent, None)
+    {
         let adapter = CodexAdapter::new();
-        let estimator = estimate_tokens::default_estimator();
-        match adapter.parse_file(p, &estimator) {
+        match adapter.parse_file(&session_path, &estimator) {
             Ok(session) => {
                 println!();
-                println!("  --file      : {}", p.display());
+                println!("  resolved target : {}", session_path.display());
                 println!("    session id  : {}", session.id);
                 println!("    turns       : {}", session.turns.len());
                 println!("    segments    : {}", session.segments.len());
@@ -32,7 +37,7 @@ pub fn run(file: Option<&Path>) -> anyhow::Result<()> {
                     println!("      line {}: {}", w.line, w.message);
                 }
             }
-            Err(e) => println!("  --file parse error: {e:#}"),
+            Err(e) => println!("  target parse error: {e:#}"),
         }
     }
     Ok(())

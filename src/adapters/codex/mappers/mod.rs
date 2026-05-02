@@ -26,15 +26,15 @@ pub fn map_to_session(
     let mut state = MapperState::new(source_path.clone());
 
     for ParsedLine { line, envelope } in parsed {
-        let Envelope {
-            timestamp: _,
-            payload,
-        } = envelope;
+        let Envelope { timestamp, payload } = envelope;
         match payload {
             Payload::SessionMeta(meta) => state.handle_session_meta(meta, line, estimator),
-            Payload::TurnContext(tc) => state.handle_turn_context(tc, line, estimator),
-            Payload::EventMsg(ev) => state.handle_event_msg(ev, line, estimator),
-            Payload::ResponseItem(item) => state.handle_response_item(item, line, estimator),
+            Payload::TurnContext(tc) => state.handle_turn_context(tc, timestamp, line, estimator),
+            Payload::EventMsg(ev) => state.handle_event_msg(ev, timestamp, line, estimator),
+            Payload::ResponseItem(item) => {
+                state.handle_response_item(item, timestamp, line, estimator)
+            }
+            Payload::Compacted(_) => {}
             Payload::Other => {}
         }
     }
@@ -93,34 +93,23 @@ impl MapperState {
         self.cli_version = meta.cli_version;
         self.model_provider = meta.model_provider;
 
-        if let Some(MetaSource {
-            subagent: Some(name),
-        }) = meta.source
+        if let Some(name) = meta
+            .source
+            .as_ref()
+            .and_then(MetaSource::delegated_subagent)
         {
             self.is_delegated_child = true;
+            let name = name.to_string();
             self.subagent_label = Some(name.clone());
             self.source.subagent = Some(name.clone());
-            // Emit a delegated marker segment.
-            let label = format!("Subagent: {name}");
-            let preview = format!("This session was launched as a delegated subagent ({name}).");
-            let est = estimator.estimate(&preview);
-            self.push_segment(
-                ContextCategory::Delegated,
-                ContextSourceKind::SubagentMarker,
-                label,
-                preview,
-                line,
-                est,
-                Confidence::Observed,
-            );
         }
 
         if let Some(BaseInstructions { text: Some(text) }) = meta.base_instructions {
             let est = estimator.estimate(&text);
             self.push_segment(
-                ContextCategory::System,
+                ContextCategory::SystemPrompt,
                 ContextSourceKind::BaseInstructions,
-                "Base Instructions".to_string(),
+                "system prompt".to_string(),
                 truncate_preview(&text),
                 line,
                 est,
@@ -136,20 +125,45 @@ impl MapperState {
     fn handle_turn_context(
         &mut self,
         tc: TurnContext,
+        timestamp: Option<chrono::DateTime<chrono::Utc>>,
         line: usize,
         estimator: &dyn TokenEstimator,
     ) {
-        if let Some(id) = tc.turn_id.clone() {
-            self.ensure_turn(id, tc.model.clone(), tc.user_instructions.clone());
+        let tid = tc.turn_id.clone();
+        if let Some(id) = tid.clone() {
+            self.ensure_turn(
+                id,
+                timestamp,
+                tc.model.clone(),
+                tc.user_instructions.clone(),
+            );
         }
         if let Some(text) = tc.user_instructions {
+            // Deduplicate: check if this turn already has a segment with the same UserInstructions text.
+            if let Some(tid) = tid.as_deref() {
+                if let Some(turn) = self.turns.iter().find(|t| t.id == tid) {
+                    let preview = truncate_preview(&text);
+                    let already_exists = turn.segment_ids.iter().any(|&sid| {
+                        if let Some(seg) = self.segments.get(sid) {
+                            seg.source_kind == ContextSourceKind::UserInstructions
+                                && seg.preview == preview
+                        } else {
+                            false
+                        }
+                    });
+                    if already_exists {
+                        return;
+                    }
+                }
+            }
+
             let est = estimator.estimate(&text);
             let chars = text.chars().count();
             let preview = truncate_preview(&text);
             self.push_segment_full(
-                ContextCategory::Configuration,
+                ContextCategory::ProjectDoc,
                 ContextSourceKind::UserInstructions,
-                "User Instructions (turn)".to_string(),
+                "user instructions (turn)".to_string(),
                 preview,
                 chars,
                 line,
@@ -159,23 +173,29 @@ impl MapperState {
         }
     }
 
-    fn handle_event_msg(&mut self, ev: EventMsg, line: usize, estimator: &dyn TokenEstimator) {
+    fn handle_event_msg(
+        &mut self,
+        ev: EventMsg,
+        timestamp: Option<chrono::DateTime<chrono::Utc>>,
+        _line: usize,
+        _estimator: &dyn TokenEstimator,
+    ) {
         match ev {
             EventMsg::TaskStarted(t) => {
                 if let Some(id) = t.turn_id {
-                    self.ensure_turn(id.clone(), None, None);
+                    self.ensure_turn(id.clone(), timestamp, None, None);
                     self.current_turn_id = Some(id);
                     if let Some(turn) = self.turns.last_mut() {
-                        turn.started_at = chrono::Utc::now().into();
-                        // Reset to None; we don't have a precise timestamp from the event itself.
-                        turn.started_at = None;
+                        if turn.started_at.is_none() {
+                            turn.started_at = timestamp;
+                        }
                     }
                 }
             }
             EventMsg::TaskComplete(t) => {
                 if let Some(id) = t.turn_id {
                     if let Some(turn) = self.turns.iter_mut().find(|x| x.id == id) {
-                        turn.completed_at = None;
+                        turn.completed_at = timestamp;
                     }
                     if self.current_turn_id.as_deref() == Some(id.as_str()) {
                         // keep current_turn_id so trailing events still attach to it
@@ -196,43 +216,11 @@ impl MapperState {
                     }
                 }
             }
-            EventMsg::UserMessage(um) => {
-                if let Some(text) = um.message {
-                    if !text.trim().is_empty() {
-                        let est = estimator.estimate(&text);
-                        let chars = text.chars().count();
-                        let preview = truncate_preview(&text);
-                        self.push_segment_full(
-                            ContextCategory::Runtime,
-                            ContextSourceKind::UserPrompt,
-                            "User Prompt".to_string(),
-                            preview,
-                            chars,
-                            line,
-                            est,
-                            Confidence::Estimated,
-                        );
-                    }
-                }
+            EventMsg::UserMessage(_um) => {
+                // Ignored to prevent duplicates; ResponseItem::Message handles this.
             }
-            EventMsg::AgentMessage(am) => {
-                if let Some(text) = am.message {
-                    if !text.trim().is_empty() {
-                        let est = estimator.estimate(&text);
-                        let chars = text.chars().count();
-                        let preview = truncate_preview(&text);
-                        self.push_segment_full(
-                            ContextCategory::Runtime,
-                            ContextSourceKind::AssistantMessage,
-                            "Assistant Message".to_string(),
-                            preview,
-                            chars,
-                            line,
-                            est,
-                            Confidence::Estimated,
-                        );
-                    }
-                }
+            EventMsg::AgentMessage(_am) => {
+                // Ignored to prevent duplicates; ResponseItem::Message handles this.
             }
             EventMsg::Other => {}
         }
@@ -241,6 +229,7 @@ impl MapperState {
     fn handle_response_item(
         &mut self,
         item: ResponseItem,
+        _timestamp: Option<chrono::DateTime<chrono::Utc>>,
         line: usize,
         estimator: &dyn TokenEstimator,
     ) {
@@ -254,9 +243,9 @@ impl MapperState {
                 let chars = args.chars().count();
                 let preview = truncate_preview(&args);
                 self.push_segment_full(
-                    ContextCategory::Runtime,
+                    ContextCategory::ToolCall,
                     ContextSourceKind::FunctionCall,
-                    format!("function_call: {name}"),
+                    format!("tool call: {name}"),
                     preview,
                     chars,
                     line,
@@ -270,9 +259,9 @@ impl MapperState {
                 let chars = body.chars().count();
                 let preview = truncate_preview(&body);
                 self.push_segment_full(
-                    ContextCategory::Runtime,
+                    ContextCategory::ToolCall,
                     ContextSourceKind::FunctionCallOutput,
-                    "function_call_output".to_string(),
+                    "tool output".to_string(),
                     preview,
                     chars,
                     line,
@@ -298,9 +287,9 @@ impl MapperState {
                         let est = estimator.estimate(&combined);
                         let chars = combined.chars().count();
                         self.push_segment_full(
-                            ContextCategory::Configuration,
+                            ContextCategory::SystemPrompt,
                             ContextSourceKind::BaseInstructions,
-                            "Developer Message".to_string(),
+                            "developer message".to_string(),
                             truncate_preview(&combined),
                             chars,
                             line,
@@ -309,12 +298,21 @@ impl MapperState {
                         );
                     } else {
                         for block in blocks {
+                            let cat = match block.kind {
+                                ContextSourceKind::SkillsInstructions => ContextCategory::Skills,
+                                ContextSourceKind::AppsInstructions => ContextCategory::Apps,
+                                ContextSourceKind::PluginsInstructions => ContextCategory::Plugins,
+                                ContextSourceKind::PermissionsInstructions => {
+                                    ContextCategory::SystemPrompt
+                                }
+                                _ => ContextCategory::SystemPrompt,
+                            };
                             let est = estimator.estimate(&block.body);
                             let chars = block.body.chars().count();
                             self.push_segment_full(
-                                ContextCategory::Configuration,
+                                cat,
                                 block.kind,
-                                block.label,
+                                block.label.to_lowercase(),
                                 truncate_preview(&block.body),
                                 chars,
                                 line,
@@ -327,9 +325,9 @@ impl MapperState {
                     let est = estimator.estimate(&combined);
                     let chars = combined.chars().count();
                     self.push_segment_full(
-                        ContextCategory::Runtime,
+                        ContextCategory::AssistantMessage,
                         ContextSourceKind::AssistantMessage,
-                        "Developer Message".to_string(),
+                        "developer message".to_string(),
                         truncate_preview(&combined),
                         chars,
                         line,
@@ -346,9 +344,9 @@ impl MapperState {
                     let est = estimator.estimate(&combined);
                     let chars = combined.chars().count();
                     self.push_segment_full(
-                        ContextCategory::Configuration,
+                        ContextCategory::ProjectDoc,
                         ContextSourceKind::ProjectInstructions,
-                        "Project Instructions (AGENTS.md)".to_string(),
+                        "AGENTS.md instructions".to_string(),
                         truncate_preview(&combined),
                         chars,
                         line,
@@ -356,12 +354,39 @@ impl MapperState {
                         Confidence::Estimated,
                     );
                 } else {
+                    // Ensure a turn exists and start a new one if this prompt is a fresh interaction.
+                    // We start a new turn if we have no active turn OR if the current turn
+                    // already contains a UserPrompt (indicating a previous interaction).
+                    let needs_new_turn = match self.current_turn_id.as_ref() {
+                        None => true,
+                        Some(tid) => self
+                            .turns
+                            .iter()
+                            .find(|t| t.id == *tid)
+                            .map(|t| {
+                                t.segment_ids.iter().any(|&sid| {
+                                    self.segments.get(sid).is_some_and(|s| {
+                                        s.source_kind == ContextSourceKind::UserPrompt
+                                    })
+                                })
+                            })
+                            .unwrap_or(true),
+                    };
+
+                    if needs_new_turn {
+                        let id = format!("synthetic-turn-{}", self.turns.len() + 1);
+                        // We use the current line as a proxy for the timestamp if missing?
+                        // Actually ensure_turn takestimestamp: Option<DateTime<Utc>>.
+                        // We'll pass None for now as handle_message doesn't have it.
+                        self.ensure_turn(id, None, None, None);
+                    }
+
                     let est = estimator.estimate(&combined);
                     let chars = combined.chars().count();
                     self.push_segment_full(
-                        ContextCategory::Runtime,
+                        ContextCategory::UserPrompt,
                         ContextSourceKind::UserPrompt,
-                        "User Prompt".to_string(),
+                        "user prompt".to_string(),
                         truncate_preview(&combined),
                         chars,
                         line,
@@ -374,9 +399,9 @@ impl MapperState {
                 let est = estimator.estimate(&combined);
                 let chars = combined.chars().count();
                 self.push_segment_full(
-                    ContextCategory::Runtime,
+                    ContextCategory::AssistantMessage,
                     ContextSourceKind::AssistantMessage,
-                    "Assistant Message".to_string(),
+                    "assistant message".to_string(),
                     truncate_preview(&combined),
                     chars,
                     line,
@@ -407,6 +432,7 @@ impl MapperState {
     fn ensure_turn(
         &mut self,
         id: String,
+        timestamp: Option<chrono::DateTime<chrono::Utc>>,
         model: Option<String>,
         user_instructions: Option<String>,
     ) {
@@ -418,6 +444,9 @@ impl MapperState {
                 if turn.user_instructions.is_none() {
                     turn.user_instructions = user_instructions;
                 }
+                if turn.started_at.is_none() {
+                    turn.started_at = timestamp;
+                }
             }
             self.current_turn_id = Some(id);
             return;
@@ -426,7 +455,7 @@ impl MapperState {
         self.turns.push(Turn {
             id: id.clone(),
             index,
-            started_at: None,
+            started_at: timestamp,
             completed_at: None,
             model,
             user_instructions,

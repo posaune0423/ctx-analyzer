@@ -11,7 +11,9 @@ use anyhow::Context;
 use serde::Deserialize;
 
 use crate::adapters::codex::classifiers;
-use crate::adapters::codex::raw::{ContentPart, Envelope, EventMsg, Payload, ResponseItem};
+use crate::adapters::codex::raw::{
+    ContentPart, Envelope, EventMsg, Payload, ResponseItem, RolloutRecord,
+};
 use crate::constants::codex::{
     CODEX_DEFAULT_HOME_DIR, CODEX_HOME_ENV, CODEX_ROLLOUT_GLOB, CODEX_SESSION_INDEX_FILE,
     CODEX_STATE_DB_FILE,
@@ -98,8 +100,12 @@ pub fn read_rollout_session_meta(path: &Path) -> anyhow::Result<Option<(String, 
     let Some(line) = json::read_jsonl_line(path, 1)? else {
         return Ok(None);
     };
-    let env: Envelope = serde_json::from_str(&line)
-        .map_err(|e| anyhow::anyhow!("failed to parse rollout header: {e}"))?;
+    let Some(env) = serde_json::from_str::<RolloutRecord>(&line)
+        .ok()
+        .map(|record| record.into_envelope())
+    else {
+        return Ok(None);
+    };
     match env.payload {
         Payload::SessionMeta(m) => Ok(Some((m.id, m.cwd.map(PathBuf::from)))),
         _ => Ok(None),
@@ -124,8 +130,8 @@ pub fn scan_rollout_for_session_list(
     if reader.read_line(&mut first_line)? == 0 {
         return Ok(None);
     }
-    let env: Envelope = match serde_json::from_str(first_line.trim()) {
-        Ok(e) => e,
+    let env: Envelope = match serde_json::from_str::<RolloutRecord>(first_line.trim()) {
+        Ok(e) => e.into_envelope(),
         Err(_) => return Ok(None),
     };
     let Payload::SessionMeta(m) = env.payload else {
@@ -139,13 +145,25 @@ pub fn scan_rollout_for_session_list(
         return Ok(None);
     }
     let first_prompt = scan_reader_for_first_prompt(&mut reader)?;
-    Ok(Some(RolloutSessionListScan { first_prompt }))
+    Ok(Some(RolloutSessionListScan {
+        session_id: m.id,
+        first_prompt,
+        subagent_label: m
+            .source
+            .as_ref()
+            .and_then(|s| s.delegated_subagent())
+            .map(|s| s.to_string()),
+        model_provider: m.model_provider,
+    }))
 }
 
 /// First user-visible prompt text for a session list row.
 #[derive(Debug, Clone)]
 pub struct RolloutSessionListScan {
+    pub session_id: String,
     pub first_prompt: Option<String>,
+    pub subagent_label: Option<String>,
+    pub model_provider: Option<String>,
 }
 
 fn scan_reader_for_first_prompt<R: BufRead>(reader: &mut R) -> anyhow::Result<Option<String>> {
@@ -160,21 +178,28 @@ fn scan_reader_for_first_prompt<R: BufRead>(reader: &mut R) -> anyhow::Result<Op
         if trimmed.is_empty() {
             continue;
         }
-        let Ok(env) = serde_json::from_str::<Envelope>(trimmed) else {
+        let Ok(env) = serde_json::from_str::<RolloutRecord>(trimmed).map(|r| r.into_envelope())
+        else {
             continue;
         };
         match env.payload {
             Payload::ResponseItem(ResponseItem::Message(msg)) if msg.role == "user" => {
                 let combined = combine_content_parts(&msg.content);
                 let t = combined.trim();
-                if !t.is_empty() && !classifiers::looks_like_project_doc(&combined) {
+                if !t.is_empty()
+                    && !classifiers::looks_like_project_doc(&combined)
+                    && !classifiers::looks_like_environment_metadata(&combined)
+                {
                     return Ok(Some(combined));
                 }
             }
             Payload::EventMsg(EventMsg::UserMessage(um)) => {
                 if let Some(m) = um.message {
                     let t = m.trim();
-                    if !t.is_empty() {
+                    if !t.is_empty()
+                        && !classifiers::looks_like_project_doc(&m)
+                        && !classifiers::looks_like_environment_metadata(&m)
+                    {
                         return Ok(Some(m));
                     }
                 }
@@ -229,5 +254,40 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         let _ = std::fs::remove_dir_all(&other);
         assert!(got.is_none());
+    }
+
+    #[test]
+    fn scan_reader_for_first_prompt_skips_environment_metadata() {
+        let line2 = serde_json::json!({
+            "type": "response_item",
+            "payload": {
+                "type": "message",
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "<environment_context> <cwd>/Users/asumayamada/.codex <shell>bash"
+                    }
+                ]
+            }
+        });
+        let line3 = serde_json::json!({
+            "type": "response_item",
+            "payload": {
+                "type": "message",
+                "role": "user",
+                "content": [{ "type": "text", "text": "hello after env block" }]
+            }
+        });
+        let line1 = serde_json::json!({
+            "type": "session_meta",
+            "payload": { "id": "unit-list-id", "cwd": "/tmp" }
+        });
+        let data = format!("{}\n{}\n{}\n", line1, line2, line3);
+        let mut reader = BufReader::new(data.as_bytes());
+
+        let got = scan_reader_for_first_prompt(&mut reader).unwrap();
+
+        assert_eq!(got, Some("hello after env block".to_string()));
     }
 }

@@ -24,8 +24,7 @@ pub fn render(
     if sessions.is_empty() {
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_style(theme.border.normal)
-            .title(Span::styled(" Sessions ", theme.text.title));
+            .border_style(theme.border.normal);
         let msg = Paragraph::new(Line::from(vec![Span::styled(
             "No sessions for this project (check $CODEX_HOME and session_meta.cwd).",
             theme.text.subtitle,
@@ -40,13 +39,32 @@ pub fn render(
         .map(|s| {
             let created = relative_time_ago(s.created_at);
             let updated = relative_time_ago(s.modified_at);
+            let agent = match &s.subagent_label {
+                Some(sub) => format!("{}:{}", s.agent.label(), sub),
+                None => s.agent.label().to_string(),
+            };
+            let model = s.model_provider.as_deref().unwrap_or("—");
             let prompt = s
                 .first_prompt
                 .as_deref()
-                .map(|c| truncate_chars(c, PROMPT_MAX))
+                .map(|c| c.replace('\n', " "))
+                .map(|c| truncate_chars(&c, PROMPT_MAX))
                 .unwrap_or_else(|| "—".into());
+
             ListItem::new(Line::from(vec![
                 Span::styled(format!("{created:>14}  {updated:>14}  "), theme.text.muted),
+                Span::styled(
+                    format!("{:<16}  ", truncate_chars(&agent, 16)),
+                    theme.text.badge,
+                ),
+                Span::styled(
+                    format!("{:<10}  ", truncate_chars(model, 10)),
+                    theme.text.normal,
+                ),
+                Span::styled(
+                    format!("{:<10}  ", truncate_chars(&s.short_id, 10)),
+                    theme.text.muted,
+                ),
                 Span::styled(prompt, theme.text.normal),
             ]))
         })
@@ -54,8 +72,7 @@ pub fn render(
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(theme.border.normal)
-        .title(Span::styled(" Sessions ", theme.text.title));
+        .border_style(theme.border.normal);
 
     let list = List::new(items)
         .block(block)
@@ -77,6 +94,9 @@ pub fn header_line(theme: &Theme) -> Line<'static> {
             format!("{:>14}  {:>14}  ", "Created", "Updated"),
             theme.text.muted,
         ),
-        Span::styled("First prompt", theme.text.title),
+        Span::styled(format!("{:<16}  ", "Agent:Subagent"), theme.text.title),
+        Span::styled(format!("{:<10}  ", "Model"), theme.text.title),
+        Span::styled(format!("{:<10}  ", "ID"), theme.text.title),
+        Span::styled("Conversation", theme.text.title),
     ])
 }

@@ -22,8 +22,12 @@ pub struct Cli {
 pub enum Commands {
     /// Open the interactive TUI for a Codex session (UI.md).
     Inspect {
-        #[arg(long)]
-        file: Option<PathBuf>,
+        /// Target project directory (defaults to current directory).
+        #[arg(long, short = 'p')]
+        project: Option<PathBuf>,
+        /// Target agent (e.g. codex, claude, gemini).
+        #[arg(long, short = 'a')]
+        agent: Option<String>,
         #[arg(long)]
         session: Option<String>,
         /// Theme name (`default`) or path to a custom theme.toml.
@@ -32,17 +36,25 @@ pub enum Commands {
     },
     /// Export the session as agent-agnostic JSON (schema_version 0.1).
     Export {
-        #[arg(long)]
-        file: Option<PathBuf>,
+        /// Target project directory (defaults to current directory).
+        #[arg(long, short = 'p')]
+        project: Option<PathBuf>,
+        /// Target agent (e.g. codex, claude, gemini).
+        #[arg(long, short = 'a')]
+        agent: Option<String>,
         #[arg(long)]
         session: Option<String>,
         #[arg(long)]
         out: Option<PathBuf>,
     },
     /// Report environment / discovered rollouts; optionally validate a
-    /// specific file.
+    /// specific workspace or agent.
     Doctor {
-        #[arg(long)]
-        file: Option<PathBuf>,
+        /// Target project directory (defaults to current directory).
+        #[arg(long, short = 'p')]
+        project: Option<PathBuf>,
+        /// Target agent (e.g. codex, claude, gemini).
+        #[arg(long, short = 'a')]
+        agent: Option<String>,
     },
 }

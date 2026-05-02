@@ -5,9 +5,16 @@ use std::path::Path;
 use crate::application::usecases::{analyze_workspace, estimate_tokens, export_json};
 use crate::ports::Exporter;
 
-pub fn run(file: Option<&Path>, session: Option<&str>, out: Option<&Path>) -> anyhow::Result<()> {
+pub fn run(
+    project: Option<&Path>,
+    agent: Option<&str>,
+    session: Option<&str>,
+    out: Option<&Path>,
+) -> anyhow::Result<()> {
     let estimator = estimate_tokens::default_estimator();
-    let session = analyze_workspace::run(file, session, &estimator)?;
+    let session_path =
+        crate::application::usecases::discover_sessions::resolve_path(project, agent, session)?;
+    let session = analyze_workspace::run(&session_path, &estimator)?;
     let value = export_json::JsonExporter.export(&session);
     let serialized = serde_json::to_string_pretty(&value)?;
     match out {

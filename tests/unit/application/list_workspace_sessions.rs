@@ -78,6 +78,7 @@ fn list_includes_rollout_when_meta_cwd_is_parent_of_launch_dir() {
     let base = std::env::temp_dir().join(format!("ctx-analyzer-tree-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
     std::fs::create_dir_all(base.join("subdir")).unwrap();
+    std::fs::create_dir(base.join(".git")).unwrap(); // ADDED .git
     let launch = base.join("subdir");
 
     let codex = std::env::temp_dir().join(format!("ctx-codex-tree-{}", std::process::id()));
@@ -120,11 +121,14 @@ fn list_includes_rollout_when_meta_cwd_is_parent_of_launch_dir() {
 fn session_list_item_fields() {
     let item = SessionListItem {
         agent: AgentKind::Codex,
+        session_id: "id".into(),
         path: PathBuf::from("/tmp/rollout-abc.jsonl"),
         modified_at: None,
         created_at: None,
         first_prompt: Some("hi".into()),
         short_id: "abc".into(),
+        subagent_label: None,
+        model_provider: None,
     };
     assert_eq!(item.agent, AgentKind::Codex);
     assert_eq!(item.short_id, "abc");

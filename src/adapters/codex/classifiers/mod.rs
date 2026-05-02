@@ -87,3 +87,12 @@ fn strip_consumed(text: &str, ranges: &[(usize, usize)]) -> String {
 pub fn looks_like_project_doc(text: &str) -> bool {
     text.trim_start().starts_with(PROJECT_DOC_PREFIX)
 }
+
+/// True when the text is the synthetic environment metadata block injected by
+/// Codex at the head of some rollouts.
+pub fn looks_like_environment_metadata(text: &str) -> bool {
+    let trimmed = text.trim_start();
+    trimmed.starts_with("<environment_context>")
+        || trimmed.starts_with("<cwd>")
+        || trimmed.starts_with("<shell>")
+}

@@ -7,7 +7,6 @@ use ratatui::widgets::{Block, Borders, Clear, Paragraph, Widget, Wrap};
 
 use crate::application::usecases::preview_segment::SegmentPreview;
 use crate::cli::tui::app::{AppState, EditorTarget};
-use crate::constants::preview::PREVIEW_MODAL_VISIBLE_BODY_LINES;
 
 pub fn render(
     area: Rect,
@@ -16,20 +15,15 @@ pub fn render(
     preview: &SegmentPreview,
     scroll: usize,
 ) {
-    let inner = centered(
-        area,
-        area.width.saturating_sub(8),
-        area.height.saturating_sub(4),
-    );
-    Clear.render(inner, buf);
+    Clear.render(area, buf);
 
     let mut lines: Vec<Line<'_>> = Vec::new();
     if let Some(path) = &preview.source_path {
         state.register_click(
             Rect {
-                x: inner.x,
-                y: inner.y.saturating_add(1),
-                width: inner.width,
+                x: area.x,
+                y: area.y.saturating_add(1),
+                width: area.width,
                 height: 4,
             },
             EditorTarget {
@@ -38,14 +32,20 @@ pub fn render(
             },
         );
         let theme = &state.theme;
-        let loc = match preview.source_line {
+        let mut loc = match preview.source_line {
             Some(n) => format!("{path}:{n}"),
             None => path.clone(),
         };
+        // Strip newlines to prevent unwanted line breaks (user reported)
+        loc = loc.replace('\n', " ").replace('\r', "");
+
+        // Truncate if path is extremely long to prevent wrapping from pushing body down
+        let max_meta_width = area.width.saturating_sub(12) as usize;
+        let display_loc = crate::utils::text::truncate_chars(&loc, max_meta_width);
+
         lines.push(Line::from(vec![
             Span::styled("Source: ", theme.text.muted),
-            Span::styled(loc, theme.text.path),
-            Span::styled("  [click to open]", theme.text.muted),
+            Span::styled(display_loc, theme.text.path),
         ]));
     } else {
         let theme = &state.theme;
@@ -55,9 +55,13 @@ pub fn render(
         )));
     }
     let theme = &state.theme;
+    let label = preview.label.replace('\n', " ").replace('\r', "");
+    let max_label_width = area.width.saturating_sub(12) as usize;
+    let display_label = crate::utils::text::truncate_chars(&label, max_label_width);
+
     lines.push(Line::from(vec![
         Span::styled("Label : ", theme.text.muted),
-        Span::styled(preview.label.clone(), theme.text.normal),
+        Span::styled(display_label, theme.text.normal),
     ]));
     lines.push(Line::from(""));
     lines.push(Line::from(Span::styled(
@@ -66,7 +70,7 @@ pub fn render(
     )));
 
     let body_lines: Vec<&str> = preview.body.lines().collect();
-    let visible = PREVIEW_MODAL_VISIBLE_BODY_LINES;
+    let visible = area.height.saturating_sub(8) as usize;
     let max_scroll = body_lines
         .len()
         .saturating_sub(visible.min(body_lines.len().max(1)));
@@ -93,7 +97,7 @@ pub fn render(
     }
     lines.push(Line::from(""));
     lines.push(Line::from(Span::styled(
-        "↑↓ scroll · o open in editor · click path · esc close",
+        "↑↓ scroll · o open in editor · esc close",
         theme.text.muted,
     )));
 
@@ -105,16 +109,5 @@ pub fn render(
     Paragraph::new(lines)
         .wrap(Wrap { trim: false })
         .block(block)
-        .render(inner, buf);
-}
-
-fn centered(area: Rect, w: u16, h: u16) -> Rect {
-    let w = w.min(area.width);
-    let h = h.min(area.height);
-    Rect {
-        x: area.x + (area.width.saturating_sub(w)) / 2,
-        y: area.y + (area.height.saturating_sub(h)) / 2,
-        width: w,
-        height: h,
-    }
+        .render(area, buf);
 }

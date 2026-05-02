@@ -6,7 +6,7 @@ use anyhow::Context;
 
 use crate::domain::session::ParseWarning;
 
-use super::raw::Envelope;
+use super::raw::{Envelope, RolloutRecord};
 
 pub struct ParsedLine {
     pub line: usize,
@@ -39,10 +39,10 @@ pub fn read_from_reader<R: Read>(
         if line.trim().is_empty() {
             continue;
         }
-        match serde_json::from_str::<Envelope>(&line) {
-            Ok(env) => envelopes.push(ParsedLine {
+        match serde_json::from_str::<RolloutRecord>(&line) {
+            Ok(record) => envelopes.push(ParsedLine {
                 line: line_no,
-                envelope: env,
+                envelope: record.into_envelope(),
             }),
             Err(e) => warnings.push(ParseWarning {
                 line: line_no,

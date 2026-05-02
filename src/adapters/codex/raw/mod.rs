@@ -14,6 +14,25 @@ pub struct Envelope {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum RolloutRecord {
+    Envelope(Envelope),
+    SessionMeta(SessionMeta),
+}
+
+impl RolloutRecord {
+    pub fn into_envelope(self) -> Envelope {
+        match self {
+            Self::Envelope(env) => env,
+            Self::SessionMeta(meta) => Envelope {
+                timestamp: meta.timestamp,
+                payload: Payload::SessionMeta(meta),
+            },
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(tag = "type", content = "payload")]
 pub enum Payload {
     #[serde(rename = "session_meta")]
@@ -22,10 +41,18 @@ pub enum Payload {
     EventMsg(EventMsg),
     #[serde(rename = "response_item")]
     ResponseItem(ResponseItem),
+    #[serde(rename = "compacted")]
+    Compacted(Compacted),
     #[serde(rename = "turn_context")]
     TurnContext(TurnContext),
     #[serde(other)]
     Other,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Compacted {
+    #[serde(default)]
+    pub replacement_history: Vec<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -47,10 +74,26 @@ pub struct SessionMeta {
     pub base_instructions: Option<BaseInstructions>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-pub struct MetaSource {
-    #[serde(default)]
-    pub subagent: Option<String>,
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum MetaSource {
+    Structured {
+        #[serde(default)]
+        subagent: Option<String>,
+    },
+    Named(String),
+}
+
+impl MetaSource {
+    pub fn delegated_subagent(&self) -> Option<&str> {
+        match self {
+            Self::Structured {
+                subagent: Some(name),
+                ..
+            } => Some(name.as_str()),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

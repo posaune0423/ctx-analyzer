@@ -3,7 +3,7 @@
 
 use crate::adapters::codex::classifiers::{self, split_developer_blocks};
 use crate::adapters::codex::raw::{
-    ContentPart, Envelope, EventMsg, Message, Payload, ResponseItem,
+    ContentPart, Envelope, EventMsg, Message, Payload, ResponseItem, RolloutRecord,
 };
 use crate::domain::{ContextSegment, ContextSourceKind};
 
@@ -11,16 +11,15 @@ use crate::domain::{ContextSegment, ContextSourceKind};
 /// `line`. Returns `None` when the line does not parse or the payload does
 /// not match the segment classification.
 pub fn extract_body_from_line(line: &str, seg: &ContextSegment) -> Option<String> {
-    let env: Envelope = serde_json::from_str(line).ok()?;
+    let env: Envelope = serde_json::from_str::<RolloutRecord>(line)
+        .ok()?
+        .into_envelope();
     extract_from_envelope(&env, seg)
 }
 
 fn extract_from_envelope(env: &Envelope, seg: &ContextSegment) -> Option<String> {
     match &env.payload {
         Payload::SessionMeta(m) => {
-            if matches!(seg.source_kind, ContextSourceKind::SubagentMarker) {
-                return Some(seg.preview.clone());
-            }
             if matches!(seg.source_kind, ContextSourceKind::BaseInstructions) {
                 return m.base_instructions.as_ref()?.text.clone();
             }
@@ -46,6 +45,7 @@ fn extract_from_envelope(env: &Envelope, seg: &ContextSegment) -> Option<String>
             _ => None,
         },
         Payload::ResponseItem(ri) => extract_response_item(ri, seg),
+        Payload::Compacted(_) => None,
         Payload::Other => None,
     }
 }

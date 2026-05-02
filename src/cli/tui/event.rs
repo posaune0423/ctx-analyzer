@@ -3,9 +3,7 @@
 use std::io;
 
 use anyhow::Context as _;
-use crossterm::event::{
-    self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind, MouseButton, MouseEventKind,
-};
+use crossterm::event::{self, Event, KeyEventKind, MouseButton, MouseEventKind};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -80,7 +78,7 @@ struct TerminalGuard;
 impl TerminalGuard {
     fn enter() -> anyhow::Result<Self> {
         enable_raw_mode()?;
-        execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+        execute!(io::stdout(), EnterAlternateScreen)?;
         Ok(TerminalGuard)
     }
 }
@@ -88,19 +86,19 @@ impl TerminalGuard {
 impl Drop for TerminalGuard {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
-        let _ = execute!(io::stdout(), DisableMouseCapture, LeaveAlternateScreen);
+        let _ = execute!(io::stdout(), LeaveAlternateScreen);
     }
 }
 
 fn enter_screen() -> anyhow::Result<()> {
     enable_raw_mode()?;
-    execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(io::stdout(), EnterAlternateScreen)?;
     Ok(())
 }
 
 fn leave_screen() -> anyhow::Result<()> {
     disable_raw_mode()?;
-    execute!(io::stdout(), DisableMouseCapture, LeaveAlternateScreen)?;
+    execute!(io::stdout(), LeaveAlternateScreen)?;
     Ok(())
 }
 

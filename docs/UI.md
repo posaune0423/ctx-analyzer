@@ -107,7 +107,7 @@ Main Context View は right-pane でも読める compact layout にする。
 
 ```txt
 ┌ ctx-analyzer ─────────────────────────────────────┐
-│ ~/dev/project · Codex · latest · Turn 8/12        │
+│ ~/dev/project · Codex · latest · 8/12             │
 │ Total ~62.6k · Config ~14.2k · Runtime ~48.4k     │
 │ Session graph: 1 root · 2 child · 0 orphan         │
 ├───────────────────────────────────────────────────┤
@@ -445,9 +445,9 @@ Session Graph View は main session と child session の関係を見るため�
 Session Graph
 
 Root Session: codex-abc
-  ├─ Turn 4
+  ├─ 4
   │   └─ Child Session: security-review
-  ├─ Turn 6
+  ├─ 6
   │   └─ Child Session: test-fix
   └─ Orphan Sessions
       └─ research-helper
@@ -478,45 +478,38 @@ Styling:
 Session Selector は session を切り替えるための overlay。
 
 ```txt
-Select Session
+Select Session · ctx-analyzer · Codex
 
-> 2026-05-01 22:31  Codex  ~/dev/project  12 turns  2 child
-  2026-05-01 18:20  Codex  ~/dev/project   8 turns  0 child
-  2026-04-30 23:10  Codex  ~/dev/other    21 turns  3 child
+> 2026-05-01 22:31  2026-05-01 22:31  Conversation preview...
+  2026-05-01 18:20  2026-05-01 18:20  Conversation preview...
+  2026-04-30 23:10  2026-04-30 23:10  Conversation preview...
 ```
 
 表示項目:
 
-- updated time
-- agent
-- workspace
-- turn count
-- child session count
-- estimated max context, if available
+- Created
+- Updated
+- Conversation (First prompt)
 
 ---
 
 ## 17. Turn Selector
 
-Turn Selector は turn を切り替えるための overlay。
+Turn Selector は interaction を切り替えるための overlay。
 
 ```txt
-Select Turn
+Select Interaction
 
-> Turn 1   ~12.4k  config ~8.1k   runtime ~4.3k
-  Turn 2   ~18.7k  config ~8.1k   runtime ~10.6k
-  Turn 3   ~33.2k  config ~9.4k   runtime ~23.8k
-  Turn 4   ~41.9k  child session spawned
+> 2026-05-01 22:31  Conversation preview...   ~12.4k
+  2026-05-01 22:32  Conversation preview...   ~18.7k
+  2026-05-01 22:33  Conversation preview...   ~33.2k
 ```
 
 表示項目:
 
-- turn index
-- estimated tokens
-- configuration tokens
-- runtime tokens
-- delegated tokens
-- notable event
+- When
+- Conversation
+- Tokens
 
 Token heat styling は turn total に適用する。
 
@@ -596,7 +589,7 @@ Navigation:
 - `↑` / `k`: move up
 - `↓` / `j`: move down
 - `←` / `h`: go back / collapse
-- `→` / `l`: expand / enter
+- `→` / `l`: expand / enter / select session
 - `enter`: expand / select
 
 Views:
@@ -634,7 +627,7 @@ Project Instructions
   tokens: ~1.8k
   path: ./AGENTS.md
   confidence: observed
-  loaded: turn 1
+  loaded: 1
 ```
 
 Rules:

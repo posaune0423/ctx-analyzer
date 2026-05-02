@@ -25,40 +25,60 @@ pub fn render(area: Rect, buf: &mut Buffer, state: &AppState) {
     spans.extend(token_label(theme, bd.total_tokens));
     spans.push(Span::raw("   "));
 
-    for cat in [
-        ContextCategory::System,
-        ContextCategory::Configuration,
-        ContextCategory::Runtime,
-        ContextCategory::Delegated,
-        ContextCategory::Unknown,
-    ] {
-        let total = bd
-            .sections
-            .iter()
-            .find(|s| s.category == cat)
-            .map(|s| s.total_tokens)
-            .unwrap_or(0);
-        if total == 0 {
+    // Group granular categories for summary display
+    let summary_groups = [
+        (
+            vec![
+                ContextCategory::SystemPrompt,
+                ContextCategory::ProjectDoc,
+                ContextCategory::Rules,
+            ],
+            "Rules",
+        ),
+        (
+            vec![
+                ContextCategory::Skills,
+                ContextCategory::Mcp,
+                ContextCategory::Apps,
+                ContextCategory::Plugins,
+            ],
+            "Config",
+        ),
+        (
+            vec![
+                ContextCategory::UserPrompt,
+                ContextCategory::ToolCall,
+                ContextCategory::AssistantMessage,
+            ],
+            "Runtime",
+        ),
+        (vec![ContextCategory::Unknown], "Unknown"),
+    ];
+
+    for (cats, label) in summary_groups {
+        let mut group_total = 0u64;
+        for &cat in &cats {
+            group_total += bd
+                .sections
+                .iter()
+                .find(|s| s.category == cat)
+                .map(|s| s.total_tokens)
+                .unwrap_or(0);
+        }
+
+        if group_total == 0 {
             continue;
         }
-        let label = short_label(cat);
-        spans.push(Span::styled(label, theme.context_style(cat)));
+
+        // Use the style of the first category in the group as a proxy for the group style
+        let style = theme.context_style(cats[0]);
+        spans.push(Span::styled(label, style));
         spans.push(Span::raw(" "));
-        spans.extend(token_label(theme, total));
+        spans.extend(token_label(theme, group_total));
         spans.push(Span::raw("   "));
     }
 
     Paragraph::new(Line::from(spans)).render(area, buf);
-}
-
-fn short_label(cat: ContextCategory) -> &'static str {
-    match cat {
-        ContextCategory::System => "System",
-        ContextCategory::Configuration => "Config",
-        ContextCategory::Runtime => "Runtime",
-        ContextCategory::Delegated => "Delegated",
-        ContextCategory::Unknown => "Unknown",
-    }
 }
 
 fn token_label<'a>(theme: &'a Theme, total: u64) -> Vec<Span<'a>> {

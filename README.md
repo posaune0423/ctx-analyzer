@@ -1,101 +1,75 @@
 # ctx-analyzer
 
-Local-first context analyzer for coding agents. Visualises what a coding-agent
-session loaded into its context window — instructions, capabilities, runtime
-events, delegated subagents — bucketed into agent-agnostic categories with
-per-segment token estimates and provenance. Helps teams that wire up plugins,
-connectors, app integrations, and MCP servers catch **duplicate or overlapping
-loads** before context bloat pushes sessions against model or product limits.
+Local-first context analyzer for coding agents.
 
-The MVP ships with the **Codex** adapter; future adapters (Claude Code, Cursor,
-Gemini CLI, OpenCode) plug in behind the same `AgentAdapter` port.
+<!-- ![demo](demo.gif) -->
 
-See:
+ctx-analyzer visualises what a coding-agent session loaded into its context window — instructions, capabilities, runtime events, delegated subagents — bucketed into agent-agnostic categories with per-segment token estimates and provenance. Helps teams that wire up plugins, connectors, app integrations, and MCP servers catch **duplicate or overlapping loads** before context bloat pushes sessions against model or product limits.
 
-- [`docs/PRD.md`](docs/PRD.md) — product, scope, success criteria
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Clean Architecture layout
-- [`docs/STRUCTURE.md`](docs/STRUCTURE.md) — repository placement rules
-- [`docs/TECH.md`](docs/TECH.md) — tech stack, tooling, dev environment
-- [`docs/UI.md`](docs/UI.md) — TUI design (deferred for MVP)
-- [`docs/specs/`](docs/specs/) — adapter / schema / token / diagnostics specs
+## FEATURES
 
-## Install (development)
+- **Agent-agnostic categorization**: Breakdowns across System, Configuration, Runtime, Delegated, and Unknown categories
+- **Token estimation**: Accurate `ceil(chars/4)` per segment + observed totals from final token events
+- **JSON export**: Export agent-agnostic JSON (schema_version 0.1) for further analysis
+- **Local-first privacy**: Inspects local agent artifacts read-only without sending data to external APIs
+- **Adapter architecture**: MVP ships with the **Codex** adapter; future adapters (Claude Code, Cursor, Gemini CLI, OpenCode) plug in behind the same port
 
-Requires Rust 1.92 (pinned via `rust-toolchain.toml`). With Nix Flakes:
+## QUICK START
 
-```sh
+Requires Rust 1.92 (pinned via `rust-toolchain.toml`).
+
+With Nix Flakes:
+
+```bash
 nix develop
 just check
 ```
 
 Without Nix:
 
-```sh
+```bash
 rustup toolchain install 1.92
 cargo build --release
 ```
 
-## Usage
+## USAGE
 
-```sh
+```bash
 # Discover Codex rollout files under ~/.codex/sessions/
 ctx-analyzer doctor
 
-# Inspect a specific rollout: header + summary + accordion breakdown
-ctx-analyzer inspect --file tests/fixtures/codex/rollout-with-subagent/ctx.jsonl
+# Inspect a specific project: header + summary + accordion breakdown
+ctx-analyzer inspect --project tests/fixtures/codex/rollout-with-subagent
 
-# Export the same session as agent-agnostic JSON (schema_version 0.1)
-ctx-analyzer export --file tests/fixtures/codex/rollout-with-subagent/ctx.jsonl --out session.json
+# Export the same session as agent-agnostic JSON
+ctx-analyzer export --project tests/fixtures/codex/rollout-with-subagent --out session.json
 ```
 
-When `--file` is omitted, `ctx-analyzer` picks the most-recently-modified
-rollout under `~/.codex/sessions/` (override with `CODEX_HOME`). When
-`--session <id>` is provided, it filters by the session UUID embedded in the
-rollout filename.
+By default, `ctx-analyzer` infers the target project from the current working directory. You can override this using the `--project <path>` argument. When `--session <id>` is provided, it filters by the session UUID embedded in the rollout filename. `ctx-analyzer` automatically looks for the most recently modified rollout under `~/.codex/sessions/` (override with `CODEX_HOME`) that matches the target project.
 
-## Architecture (one-line sketch)
+## DEVELOPMENT
 
-```
-CLI / TUI -> Application (usecases, view-models)
-              -> Domain (Session, Turn, ContextSegment, …)
-              -> Ports (AgentAdapter, TokenEstimator, Exporter, …)
-           -> Adapters (codex/{discovery,raw,parsers,classifiers,mappers,graph})
-           -> Infra    (fs, json, toml, sqlite, editor, token)
-```
+| Command       | Action                                                                     |
+| :------------ | :------------------------------------------------------------------------- |
+| `just fmt`    | rustfmt + prettier                                                         |
+| `just lint`   | clippy -D warnings                                                         |
+| `just test`   | cargo test --all-targets                                                   |
+| `just deny`   | cargo deny check                                                           |
+| `just check`  | all of the above (CI gate)                                                 |
+| `just demo-*` | run the binary against the bundled fixture (`doctor`, `inspect`, `export`) |
 
-`domain` is agent-agnostic; Codex-specific filenames and schema live exclusively
-under `src/adapters/codex/` per the placement rules in `docs/STRUCTURE.md`.
+Pre-commit / pre-push hooks are managed via [lefthook](lefthook.yml). To enable: `lefthook install`
 
-## Development
+## DOCUMENTATION
 
-```sh
-just fmt         # rustfmt + prettier
-just lint        # clippy -D warnings
-just test        # cargo test --all-targets
-just deny        # cargo deny check
-just check       # all of the above (CI gate)
+- `llm.txt` — Agent-oriented install & CLI summary
+- Architecture & core concepts
+- Adapter specs & token estimation
 
-just demo-doctor   # run the binary against the bundled fixture
-just demo-inspect
-just demo-export
-```
+## CONTRIBUTING
 
-Pre-commit / pre-push hooks are managed via [lefthook](lefthook.yml). To enable:
+See `docs/CONTRIBUTING.md`. Run `just check` before sending a PR.
 
-```sh
-lefthook install
-```
+## LICENSE
 
-## Status
-
-MVP per `docs/PRD.md` §13.1: Codex adapter, session/turn reconstruction,
-context breakdown across {System, Configuration, Runtime, Delegated, Unknown}
-categories, token estimation (`ceil(chars/4)` per segment + observed totals
-from final `token_count` event), agent-agnostic JSON export, source-file
-provenance, reconstruction confidence. TUI, SQLite state-db ingestion,
-cross-file child-session linking, comparison, diagnostics, and cost estimation
-are deferred (see `docs/PRD.md` §8.2).
-
-## License
-
-MIT OR Apache-2.0 (see `Cargo.toml`).
+Released under the [MIT OR Apache-2.0 License](LICENSE).

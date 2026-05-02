@@ -57,9 +57,5 @@ flowchart LR
 
 ## Mouse
 
-- Mouse capture is enabled at startup. Components register clickable regions
-  for **path spans** (Breakdown detail rows, Preview Modal `Source:` line,
-  Header workspace path). Left-click on a registered region triggers the
-  same code path as `o` (open in `$EDITOR`).
-- When a terminal does not forward mouse events, all flows remain reachable
-  via the keyboard.
+- Mouse capture is intentionally disabled. This ensures that the user can natively select and copy text from the terminal emulator using their mouse without needing modifier keys.
+- Due to this, there are no custom mouse click events handled by the application (e.g., left-clicking a path to open it in an editor is removed; users must use the `o` key).

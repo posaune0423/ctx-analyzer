@@ -70,10 +70,16 @@ pub struct TokenStyles {
 
 #[derive(Debug, Clone)]
 pub struct ContextStyles {
-    pub system: Style,
-    pub configuration: Style,
-    pub runtime: Style,
-    pub delegated: Style,
+    pub system_prompt: Style,
+    pub project_doc: Style,
+    pub rules: Style,
+    pub skills: Style,
+    pub mcp: Style,
+    pub apps: Style,
+    pub plugins: Style,
+    pub user_prompt: Style,
+    pub tool_call: Style,
+    pub assistant_message: Style,
     pub unknown: Style,
 }
 
@@ -112,10 +118,16 @@ impl Theme {
 
     pub fn context_style(&self, cat: ContextCategory) -> Style {
         match cat {
-            ContextCategory::System => self.contexts.system,
-            ContextCategory::Configuration => self.contexts.configuration,
-            ContextCategory::Runtime => self.contexts.runtime,
-            ContextCategory::Delegated => self.contexts.delegated,
+            ContextCategory::SystemPrompt => self.contexts.system_prompt,
+            ContextCategory::ProjectDoc => self.contexts.project_doc,
+            ContextCategory::Rules => self.contexts.rules,
+            ContextCategory::Skills => self.contexts.skills,
+            ContextCategory::Mcp => self.contexts.mcp,
+            ContextCategory::Apps => self.contexts.apps,
+            ContextCategory::Plugins => self.contexts.plugins,
+            ContextCategory::UserPrompt => self.contexts.user_prompt,
+            ContextCategory::ToolCall => self.contexts.tool_call,
+            ContextCategory::AssistantMessage => self.contexts.assistant_message,
             ContextCategory::Unknown => self.contexts.unknown,
         }
     }
@@ -245,10 +257,16 @@ fn resolve_contexts(
             .unwrap_or_default()
     };
     Ok(ContextStyles {
-        system: s("system"),
-        configuration: s("configuration"),
-        runtime: s("runtime"),
-        delegated: s("delegated"),
+        system_prompt: s("system_prompt"),
+        project_doc: s("project_doc"),
+        rules: s("rules"),
+        skills: s("skills"),
+        mcp: s("mcp"),
+        apps: s("apps"),
+        plugins: s("plugins"),
+        user_prompt: s("user_prompt"),
+        tool_call: s("tool_call"),
+        assistant_message: s("assistant_message"),
         unknown: s("unknown"),
     })
 }

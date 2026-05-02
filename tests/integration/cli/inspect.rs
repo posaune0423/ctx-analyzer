@@ -20,7 +20,7 @@ fn fixture_path() -> PathBuf {
 fn build_state() -> AppState {
     let estimator = estimate_tokens::default_estimator();
     let path = fixture_path();
-    let session = analyze_workspace::run(Some(&path), None, &estimator).unwrap();
+    let session = analyze_workspace::run(&path, &estimator).unwrap();
     let mut state = AppState::new_with_loaded_session(
         session,
         Vec::new(),
@@ -80,12 +80,25 @@ fn tui_frame_includes_severity_symbols() {
     );
 }
 
+fn setup_mock_codex_home() -> (tempfile::TempDir, PathBuf) {
+    let tmp = tempfile::tempdir().unwrap();
+    let sessions_dir = tmp.path().join("sessions/2026/04/09");
+    std::fs::create_dir_all(&sessions_dir).unwrap();
+    let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/fixtures/codex/rollout-with-subagent/ctx.jsonl");
+    std::fs::copy(&fixture_path, sessions_dir.join("rollout-abc.jsonl")).unwrap();
+    let project_dir = PathBuf::from("/Users/asumayamada/Work/velvett-io/unigacha-contracts");
+    (tmp, project_dir)
+}
+
 #[test]
 fn inspect_without_tty_reports_a_clear_error() {
+    let (tmp, project_dir) = setup_mock_codex_home();
     let assert = Command::cargo_bin("ctx-analyzer")
         .unwrap()
-        .args(["inspect", "--file"])
-        .arg(fixture_path())
+        .env("CODEX_HOME", tmp.path())
+        .args(["inspect", "--project"])
+        .arg(&project_dir)
         .assert()
         .failure();
     let output = assert.get_output();

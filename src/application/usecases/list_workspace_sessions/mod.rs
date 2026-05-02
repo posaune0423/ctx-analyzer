@@ -15,6 +15,7 @@ use crate::infra::workspace_root;
 #[derive(Debug, Clone)]
 pub struct SessionListItem {
     pub agent: AgentKind,
+    pub session_id: String,
     pub path: PathBuf,
     pub modified_at: Option<SystemTime>,
     /// Best-effort “created” time (`Metadata::created` when the platform
@@ -24,6 +25,8 @@ pub struct SessionListItem {
     pub first_prompt: Option<String>,
     /// Best-effort short id derived from the file name (`rollout-<id>.jsonl`).
     pub short_id: String,
+    pub subagent_label: Option<String>,
+    pub model_provider: Option<String>,
 }
 
 /// Codex rollouts for this inspect project, newest **modified** first.
@@ -48,11 +51,14 @@ pub fn list_for_launch_dir(launch_dir: &Path) -> anyhow::Result<Vec<SessionListI
 
         entries.push(SessionListItem {
             agent: AgentKind::Codex,
+            session_id: scan.session_id,
             path,
             modified_at,
             created_at,
             first_prompt: scan.first_prompt,
             short_id,
+            subagent_label: scan.subagent_label,
+            model_provider: scan.model_provider,
         });
     }
     entries.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
