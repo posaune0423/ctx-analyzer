@@ -53,10 +53,12 @@ fn tui_frame_shows_header_summary_and_categories() {
     let mut state = build_state();
     let dump = render_to_string(&mut state, 120, 30);
     assert!(dump.contains("ctx-analyzer"), "header missing\n{dump}");
-    assert!(dump.contains("[Codex]"), "agent badge missing\n{dump}");
+    // New Header style shows "Codex : review" instead of "[Codex]"
+    assert!(dump.contains("Codex : review"), "agent/subagent info missing\n{dump}");
     assert!(dump.contains("Total"), "summary bar missing\n{dump}");
+    // New categories
     assert!(
-        dump.contains("Configuration Context") || dump.contains("Runtime Context"),
+        dump.contains("system prompt") || dump.contains("AGENTS.md"),
         "no category section rendered\n{dump}"
     );
     assert!(
@@ -64,7 +66,7 @@ fn tui_frame_shows_header_summary_and_categories() {
         "accordion frame missing\n{dump}"
     );
     assert!(
-        dump.contains("? help") || dump.contains("q quit"),
+        dump.contains("? help") || dump.contains("q back"),
         "footer hint missing\n{dump}"
     );
 }

@@ -49,13 +49,25 @@ fn totals_object_uses_canonical_key_names() {
 }
 
 #[test]
-fn categories_object_lists_all_five_buckets() {
+fn categories_object_lists_all_buckets() {
     let adapter = CodexAdapter::new();
     let estimator = CharsPer4Estimator;
     let session = adapter.parse_file(&fixture_path(), &estimator).unwrap();
     let value = JsonExporter.export(&session);
     let categories = value["categories"].as_object().unwrap();
-    for k in ["system", "configuration", "runtime", "delegated", "unknown"] {
+    for k in [
+        "system_prompt",
+        "project_doc",
+        "rules",
+        "skills",
+        "mcp",
+        "apps",
+        "plugins",
+        "user_prompt",
+        "tool_call",
+        "assistant_message",
+        "unknown",
+    ] {
         assert!(categories.contains_key(k), "missing category: {k}");
     }
 }
