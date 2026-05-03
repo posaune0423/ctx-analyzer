@@ -1,8 +1,16 @@
+<div align="center">
+
 # ctx-analyzer
 
-Local-first context analyzer for coding agents.
+**Local-first context analyzer for coding agents.**
 
-<!-- ![demo](demo.gif) -->
+<!-- <img src="docs/demo.gif" width="700" alt="ctx-analyzer rendering context breakdown" /> -->
+
+[![CI](https://github.com/posaune0423/ctx-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/posaune0423/ctx-analyzer/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](./LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.92%2B-orange.svg)](https://www.rust-lang.org/)
+
+</div>
 
 ctx-analyzer visualises what a coding-agent session loaded into its context window — instructions, capabilities, runtime events, delegated subagents — bucketed into agent-agnostic categories with per-segment token estimates and provenance. Helps teams that wire up plugins, connectors, app integrations, and MCP servers catch **duplicate or overlapping loads** before context bloat pushes sessions against model or product limits.
 
@@ -38,14 +46,14 @@ cargo build --release
 # Discover Codex rollout files under ~/.codex/sessions/
 ctx-analyzer doctor
 
-# Inspect a specific project: header + summary + accordion breakdown
-ctx-analyzer inspect --project tests/fixtures/codex/rollout-with-subagent
+# Inspect a specific rollout: header + summary + accordion breakdown
+ctx-analyzer inspect --file tests/fixtures/codex/rollout-with-subagent/ctx.jsonl
 
 # Export the same session as agent-agnostic JSON
-ctx-analyzer export --project tests/fixtures/codex/rollout-with-subagent --out session.json
+ctx-analyzer export --file tests/fixtures/codex/rollout-with-subagent/ctx.jsonl --out session.json
 ```
 
-By default, `ctx-analyzer` infers the target project from the current working directory. You can override this using the `--project <path>` argument. When `--session <id>` is provided, it filters by the session UUID embedded in the rollout filename. `ctx-analyzer` automatically looks for the most recently modified rollout under `~/.codex/sessions/` (override with `CODEX_HOME`) that matches the target project.
+When `--file` is omitted, `ctx-analyzer` picks the most-recently-modified rollout under `~/.codex/sessions/` (override with `CODEX_HOME`). When `--session <id>` is provided, it filters by the session UUID embedded in the rollout filename.
 
 ## DEVELOPMENT
 
